@@ -1,7 +1,6 @@
 # Piper: Probabilistic Programming for [JAX]
 
 [**Overview**](#overview)
-| [**Quickstart**](#quickstart)
 | [**Installation**](#installation)
 | [**Examples**](https://github.com/branislav1991/piper/tree/master/examples/)
 
