@@ -28,14 +28,13 @@ setup(
     license='MIT',
     author='Branislav Holländer',
     author_email='branislav.hollander@gmail.com',
-    description='MLOps pipelining library',
+    description='Probabilistic Programming Using JAX',
     packages=find_packages(),
     classifiers=[
         'Development Status :: 1 - Planning',
         'Natural Language :: English',
         'Programming Language :: Python :: 3',
         'License :: OSI Approved :: MIT License',
-        'Topic :: Software Development',
         'Topic :: Scientific/Engineering',
     ],
     python_requires='>=3.7'
