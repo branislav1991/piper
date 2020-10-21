@@ -4,7 +4,8 @@
 | [**Installation**](#installation)
 | [**Examples**](https://github.com/branislav1991/piper/tree/master/examples/)
 
-![pytest](https://github.com/branislav1991/piper/workflows/pytest/badge.svg)
+![license](https://img.shields.io/github/license/branislav1991/piper)
+![build](https://img.shields.io/github/workflow/status/branislav1991/piper/Python%20package)
 
 ## Overview
 
