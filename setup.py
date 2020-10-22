@@ -32,10 +32,10 @@ with open('piper/version.py') as f:
 HERE = pathlib.Path(__file__).parent
 
 # The text of the README file
-README = ('README.md').read_text()
+README = (HERE / 'README.md').read_text()
 
 setup(
-    name='piper',
+    name='piper-jax',
     version=__version__,
     license='MIT',
     author='Branislav Holländer',
@@ -44,7 +44,7 @@ setup(
     long_description=README,
     long_description_content_type="text/markdown",
     url="https://github.com/branislav1991/piper",
-    packages=find_packages(),
+    packages=find_packages(exclude=['tests', 'tests.*']),
     install_requires=["numpy", "jax", "jaxlib"],
     classifiers=[
         'Development Status :: 1 - Planning',
