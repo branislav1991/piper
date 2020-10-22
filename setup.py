@@ -22,9 +22,14 @@
 
 from setuptools import find_packages, setup
 
+__version__ = None
+
+with open('piper/version.py') as f:
+    exec(f.read(), globals())
+
 setup(
     name='piper',
-    version='0.1dev',
+    version=__version__,
     license='MIT',
     author='Branislav Holländer',
     author_email='branislav.hollander@gmail.com',
@@ -37,5 +42,5 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Topic :: Scientific/Engineering',
     ],
-    python_requires='>=3.7'
+    python_requires='>=3.7',
 )
