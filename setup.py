@@ -20,12 +20,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+import pathlib
 from setuptools import find_packages, setup
 
 __version__ = None
 
 with open('piper/version.py') as f:
     exec(f.read(), globals())
+
+# The directory containing this file
+HERE = pathlib.Path(__file__).parent
+
+# The text of the README file
+README = ('README.md').read_text()
 
 setup(
     name='piper',
@@ -34,7 +41,11 @@ setup(
     author='Branislav Holländer',
     author_email='branislav.hollander@gmail.com',
     description='Probabilistic Programming Using JAX',
+    long_description=README,
+    long_description_content_type="text/markdown",
+    url="https://github.com/branislav1991/piper",
     packages=find_packages(),
+    install_requires=["numpy", "jax", "jaxlib"],
     classifiers=[
         'Development Status :: 1 - Planning',
         'Natural Language :: English',
