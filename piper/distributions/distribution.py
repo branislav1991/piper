@@ -2,17 +2,25 @@
 # See the file LICENSE for copying permission.
 
 import abc
+from typing import Optional
 
 import jax.numpy as jnp
 
+from piper import graph
 
-class Distribution(abc.ABC):
+
+class Distribution(graph.Node):
+    def __init__(self, name: str):
+        super().__init__(name)
+
     @abc.abstractmethod
-    def sample(self):
-        """Samples a random value.
+    def sample(self, seed: Optional[int], **kwargs):
+        """Sample from the distribution.
 
-        Returns:
-            Sampled value with same shape as parameters.
+        Args:
+            seed: An optional rng seed. If not specified, the default
+                rng seed will be used.
+            kwargs: Parameters of the distribution provided as a dictionary.
         """
         raise NotImplementedError
 
