@@ -62,8 +62,8 @@ def test_kl_normal_normal_multi_dimensional():
     model = normal(model, 'n3', jnp.array([1., 1.]), jnp.array([1., 1.]))
     model = normal(model, 'n4', jnp.array([1., 1.]), jnp.array([2., 2.]))
 
-    assert kl_divergence.kl_divergence(model, 'n1', 'n2') < 1e-6
-    assert kl_divergence.kl_divergence(model, 'n1', 'n3') - jnp.array(1.0) \
-        < jnp.array(1e-6)
-    assert kl_divergence.kl_divergence(model, 'n3', 'n4') \
-        - jnp.array(0.19314718) < jnp.array(1e-6)
+    assert jnp.all(kl_divergence.kl_divergence(model, 'n1', 'n2') < 1e-6)
+    assert jnp.all(kl_divergence.kl_divergence(model, 'n1', 'n3') - 0.5
+                   < 1e-6)
+    assert jnp.all(kl_divergence.kl_divergence(model, 'n3', 'n4')
+                   - 0.09657359 < 1e-6)

@@ -17,6 +17,9 @@ class Normal(distribution.Distribution):
                  sigma: Union[str, jnp.ndarray]):
         """Initializes a normal distribution with mean mu and standard deviation sigma.
 
+        Mu and sigma may be multidimensional, in which case they represent
+        multiple univariate Gaussians.
+
         Args:
             mu: Mean of the distribution. This can be either a named entity
                 specified in the model or a JAX ndarray.
@@ -30,12 +33,6 @@ class Normal(distribution.Distribution):
 
         if (not isinstance(sigma, jnp.ndarray) and not isinstance(sigma, str)):
             raise TypeError('Sigma needs to be one of: jnp.ndarray, str')
-
-        if isinstance(mu, jnp.ndarray) and isinstance(sigma, jnp.ndarray):
-            if len(mu.shape) != 1:
-                raise ValueError(
-                    'Parameters of normal distribution need to be \
-                    defined in a vector')
 
         if isinstance(mu, jnp.ndarray) and isinstance(sigma, jnp.ndarray):
             if mu.shape != sigma.shape:
@@ -78,11 +75,11 @@ def kl_normal_normal(dist1, dist2):
         if dist1.mu.shape != dist2.mu.shape:
             raise ValueError('Mu and sigma need to have the same shape')
 
-        k = dist1.mu.shape[0]
-        return 0.5 * (jnp.sum(dist1.sigma / dist2.sigma)
-                      + (dist2.mu - dist1.mu) @ jnp.diag(1. / dist2.sigma)
-                      @ (dist2.mu - dist1.mu) - k
-                      + jnp.log(jnp.prod(dist2.sigma) / jnp.prod(dist1.sigma)))
+        k = 1
+        return 0.5 * ((dist1.sigma / dist2.sigma)
+                      + (dist2.mu - dist1.mu) * (1. / dist2.sigma)
+                      * (dist2.mu - dist1.mu) - k
+                      + jnp.log(dist2.sigma / dist1.sigma))
 
     # TODO: we need to measure the kl-divergence in this case by sampling
     raise NotImplementedError
