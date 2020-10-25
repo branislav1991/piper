@@ -20,7 +20,8 @@ class Graph:
             raise ValueError("Graph.add: Invalid node")
 
         if node.name in self.nodes:
-            raise ValueError(f"Cannot register multiple instances of '{node.name}' \
+            raise ValueError(
+                f"Cannot register multiple instances of '{node.name}' \
                              in the graph")
 
         if node in self.node_inst:
@@ -32,6 +33,9 @@ class Graph:
         for dep in node.dependencies:
             if dep not in self.nodes:
                 raise ValueError(f"Cannot find dependency {dep} in the graph")
+
+    def __contains__(self, nodename: str):
+        return nodename in self.nodes
 
     def topological_sort(self) -> list:
         """Return nodes topologically sorted based on their dependencies.

@@ -7,6 +7,7 @@ import jax.random
 import jax.numpy as jnp
 
 from piper.distributions import distribution
+from piper.functional import kl_divergence
 from piper import graph
 from piper import util
 
@@ -29,6 +30,12 @@ class Normal(distribution.Distribution):
 
         if (not isinstance(sigma, jnp.ndarray) and not isinstance(sigma, str)):
             raise TypeError('Sigma needs to be one of: jnp.ndarray, str')
+
+        if isinstance(mu, jnp.ndarray) and isinstance(sigma, jnp.ndarray):
+            if len(mu.shape) != 1:
+                raise ValueError(
+                    'Parameters of normal distribution need to be \
+                    defined in a vector')
 
         if isinstance(mu, jnp.ndarray) and isinstance(sigma, jnp.ndarray):
             if mu.shape != sigma.shape:
@@ -63,3 +70,19 @@ def normal(model: graph.Graph, name: str, mu: Union[str, jnp.ndarray],
     dist = Normal(name, mu, sigma)
     model.add(dist)
     return model
+
+
+@kl_divergence.register_kl(Normal, Normal)
+def kl_normal_normal(dist1, dist2):
+    if isinstance(dist1.mu, jnp.ndarray) and isinstance(dist2.mu, jnp.ndarray):
+        if dist1.mu.shape != dist2.mu.shape:
+            raise ValueError('Mu and sigma need to have the same shape')
+
+        k = dist1.mu.shape[0]
+        return 0.5 * (jnp.sum(dist1.sigma / dist2.sigma)
+                      + (dist2.mu - dist1.mu) @ jnp.diag(1. / dist2.sigma)
+                      @ (dist2.mu - dist1.mu) - k
+                      + jnp.log(jnp.prod(dist2.sigma) / jnp.prod(dist1.sigma)))
+
+    # TODO: we need to measure the kl-divergence in this case by sampling
+    raise NotImplementedError
