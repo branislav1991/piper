@@ -2,9 +2,7 @@
 # See the file LICENSE for copying permission.
 
 from piper.graph import create_graph
-from piper.functional import sample
 
 __all__ = [
-    "create_graph",
-    "sample"
+    "create_graph"
 ]

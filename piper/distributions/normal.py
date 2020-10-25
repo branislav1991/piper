@@ -38,8 +38,17 @@ class Normal(distribution.Distribution):
             if mu.shape != sigma.shape:
                 raise ValueError('Mu and sigma need to have the same shape')
 
-        self.mu = jnp.array(mu, dtype=jnp.float_)
-        self.sigma = jnp.array(sigma, dtype=jnp.float_)
+        if isinstance(mu, str):
+            self.dependencies.append(mu)
+            self.mu = mu
+        else:
+            self.mu = jnp.array(mu, dtype=jnp.float_)
+
+        if isinstance(sigma, str):
+            self.dependencies.append(sigma)
+            self.sigma = sigma
+        else:
+            self.sigma = jnp.array(sigma, dtype=jnp.float_)
 
     def sample(self, seed: Optional[int] = None, **kwargs):
         """Sample from the distribution.
@@ -53,7 +62,27 @@ class Normal(distribution.Distribution):
             key = jax.random.PRNGKey(seed)
         else:
             key = util.split_default_key()
-        return jax.random.normal(key, shape=self.mu.shape, dtype=self.mu.dtype)
+
+        if isinstance(self.mu, str):
+            assert self.mu in kwargs
+            mu_sample = kwargs[self.mu]
+        else:
+            mu_sample = self.mu
+
+        if isinstance(self.sigma, str):
+            assert self.sigma in kwargs
+            sigma_sample = kwargs[self.sigma]
+        else:
+            sigma_sample = self.sigma
+
+        if mu_sample.shape != sigma_sample.shape:
+            raise RuntimeError("Mu and sigma need to be of same shape")
+
+        std_norm = jax.random.normal(key,
+                                     shape=mu_sample.shape,
+                                     dtype=mu_sample.dtype)
+
+        return std_norm * sigma_sample + mu_sample
 
     def log_prob(self, x: jnp.ndarray) -> jnp.ndarray:
         raise NotImplementedError
@@ -76,10 +105,10 @@ def kl_normal_normal(dist1, dist2):
             raise ValueError('Mu and sigma need to have the same shape')
 
         k = 1
-        return 0.5 * ((dist1.sigma / dist2.sigma)
-                      + (dist2.mu - dist1.mu) * (1. / dist2.sigma)
-                      * (dist2.mu - dist1.mu) - k
-                      + jnp.log(dist2.sigma / dist1.sigma))
+        return 0.5 * (
+            (dist1.sigma / dist2.sigma) + (dist2.mu - dist1.mu)
+            * (1. / dist2.sigma)
+            * (dist2.mu - dist1.mu) - k + jnp.log(dist2.sigma / dist1.sigma))
 
     # TODO: we need to measure the kl-divergence in this case by sampling
     raise NotImplementedError

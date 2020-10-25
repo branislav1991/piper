@@ -13,7 +13,11 @@ def sample(model: graph.Graph, seed: Optional[int] = None) -> dict:
     for layer in layers:
         for node in layer:
             if isinstance(node, distribution.Distribution):
-                inferred[node.name] = node.sample(seed)
+                injected_deps = {}
+                for d in node.dependencies:
+                    injected_deps[d] = inferred[d]
+
+                inferred[node.name] = node.sample(seed, **injected_deps)
             else:
                 raise TypeError("Unknown node type")
 

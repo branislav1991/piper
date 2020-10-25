@@ -25,6 +25,7 @@ You may define a model in Piper by specifying a generating function like this:
 
     import jax.numpy as jnp
     import piper
+    import piper.functional as func
     import piper.distributions as dist
 
     def model():
@@ -44,7 +45,7 @@ coin flip being heads ("obs") is given by a sample from the Beta distribution.
 
 After specifying the model, we can sample from it by calling
 
-    sample = piper.sample(model())
+    sample = func.sample(model())
     
 This will return a dictionary of sampled values.
 
@@ -53,7 +54,7 @@ This will return a dictionary of sampled values.
 Piper allows you to compute the KL-divergence for defined distributions. This is
 embedded in the model API and can be used like this:
 
-    from piper.functional.kl_divergence import kl_divergence
+    import piper.functional as func
     
     def model():
         m = piper.create_model()
@@ -62,6 +63,6 @@ embedded in the model API and can be used like this:
         
         return m
 
-    kl_normal_normal = kl_divergence(model(), 'n1', 'n2') # returns 1.0
+    kl_normal_normal = func.kl_divergence(model(), 'n1', 'n2') # returns 1.0
 
 [JAX]: https://github.com/google/jax
