@@ -19,6 +19,8 @@ Piper is written in pure Python. You may simply install piper from pip by runnin
 
 ## Tutorial
 
+### Model Definition
+
 You may define a model in Piper by specifying a generating function like this:
 
     import jax.numpy as jnp
@@ -30,7 +32,7 @@ You may define a model in Piper by specifying a generating function like this:
         beta0 = jnp.array(10.0)
         
         m = piper.create_model()
-        m = dist.beta(m, 'latent_fairness', alpha0, beta0)
+        m = dist.Beta(m, 'latent_fairness', alpha0, beta0)
         m = dist.Bernoulli(m, f'obs', 'latent_fairness')
 
         return m
@@ -42,8 +44,24 @@ coin flip being heads ("obs") is given by a sample from the Beta distribution.
 
 After specifying the model, we can sample from it by calling
 
-    sample = piper.sample(model)
+    sample = piper.sample(model())
     
 This will return a dictionary of sampled values.
+
+### Computing KL-divergence
+
+Piper allows you to compute the KL-divergence for defined distributions. This is
+embedded in the model API and can be used like this:
+
+    from piper.functional.kl_divergence import kl_divergence
+    
+    def model():
+        m = piper.create_model()
+        m = normal(m, 'n1', jnp.array([0., 0.]), jnp.array([1., 1.]))
+        m = normal(m, 'n2', jnp.array([1., 1.]), jnp.array([1., 1.]))
+        
+        return m
+
+    kl_normal_normal = kl_divergence(model(), 'n1', 'n2') # returns 1.0
 
 [JAX]: https://github.com/google/jax
