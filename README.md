@@ -33,8 +33,8 @@ You may define a model in Piper by specifying a generating function like this:
         beta0 = jnp.array(10.0)
         
         m = piper.create_model()
-        m = dist.Beta(m, 'latent_fairness', alpha0, beta0)
-        m = dist.Bernoulli(m, f'obs', 'latent_fairness')
+        m = dist.beta(m, 'latent_fairness', alpha0, beta0)
+        m = dist.bernoulli(m, 'obs', 'latent_fairness')
 
         return m
             
