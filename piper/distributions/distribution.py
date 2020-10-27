@@ -2,7 +2,6 @@
 # See the file LICENSE for copying permission.
 
 import abc
-from typing import Optional
 
 import jax.numpy as jnp
 
@@ -14,12 +13,11 @@ class Distribution(graph.Node):
         super().__init__(name)
 
     @abc.abstractmethod
-    def sample(self, seed: Optional[int], **kwargs):
+    def sample(self, key: jnp.ndarray, **kwargs):
         """Sample from the distribution.
 
         Args:
-            seed: An optional rng seed. If not specified, the default
-                rng seed will be used.
+            key: JAX random key.
             kwargs: Parameters of the distribution provided as a dictionary.
         """
         raise NotImplementedError

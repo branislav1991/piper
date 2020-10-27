@@ -2,5 +2,6 @@
 # See the file LICENSE for copying permission.
 
 from piper.distributions.normal import normal
+from piper.distributions.binomial import binomial
 
-__all__ = ["normal"]
+__all__ = ["normal", "binomial"]

@@ -1,7 +1,7 @@
 # Copyright (c) 2020 Branislav Holländer. All rights reserved.
 # See the file LICENSE for copying permission.
 
-from typing import Optional, Union
+from typing import Union
 
 import jax.random
 import jax.numpy as jnp
@@ -9,7 +9,6 @@ import jax.numpy as jnp
 from piper.distributions import distribution
 from piper.functional import kl_divergence
 from piper import graph
-from piper import util
 
 
 class Normal(distribution.Distribution):
@@ -42,27 +41,21 @@ class Normal(distribution.Distribution):
             self.dependencies.append(mu)
             self.mu = mu
         else:
-            self.mu = jnp.array(mu, dtype=jnp.float_)
+            self.mu = mu.astype(jnp.float32)
 
         if isinstance(sigma, str):
             self.dependencies.append(sigma)
             self.sigma = sigma
         else:
-            self.sigma = jnp.array(sigma, dtype=jnp.float_)
+            self.sigma = sigma.astype(jnp.float32)
 
-    def sample(self, seed: Optional[int] = None, **kwargs):
+    def sample(self, key: jnp.ndarray, **kwargs):
         """Sample from the distribution.
 
         Args:
-            seed: An optional rng seed. If not specified, the default
-                rng seed will be used.
+            key: JAX random key.
             kwargs: Parameters of the distribution provided as a dictionary.
         """
-        if seed:
-            key = jax.random.PRNGKey(seed)
-        else:
-            key = util.split_default_key()
-
         if isinstance(self.mu, str):
             assert self.mu in kwargs
             mu_sample = kwargs[self.mu]

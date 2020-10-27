@@ -3,6 +3,7 @@
 
 import pytest
 
+import jax
 import jax.numpy as jnp
 
 import piper
@@ -19,11 +20,6 @@ def test_throw_bad_params():
     model = piper.create_graph()
     with pytest.raises(TypeError):
         normal(model, 'test2', 0., 1.)
-
-    # Should fail because of duplicate entries in the graph
-    normal(model, 'test3', jnp.array([0.]), jnp.array([1.]))
-    with pytest.raises(ValueError):
-        normal(model, 'test3', jnp.array([0.]), jnp.array([1.]))
 
     # Should fail because of different shapes of mu and sigma
     with pytest.raises(ValueError):
@@ -61,33 +57,33 @@ def test_kl_normal_normal_multi_dimensional():
 def test_sample_normal():
     model = piper.create_graph()
     model = normal(model, 'n', jnp.array([0.]), jnp.array([1.]))
-    samples = []
-    for i in range(500):
-        samples.append(func.sample(model)['n'])
 
-    samples = jnp.stack(samples)
-    assert abs(jnp.mean(samples)) < 0.1
+    keys = jax.random.split(jax.random.PRNGKey(123), 500)
+    samples = jax.vmap(lambda k, m: func.sample(m, k)['n'], in_axes=(0, None),
+                       out_axes=0)(keys, model)
+
+    assert abs(jnp.mean(samples)) < 0.2
 
     model = piper.create_graph()
     model = normal(model, 'n', jnp.array([10.]), jnp.array([1.]))
-    samples = []
-    for i in range(500):
-        samples.append(func.sample(model)['n'])
 
-    samples = jnp.stack(samples)
-    assert abs(jnp.mean(samples)) - 10. < 0.1
+    keys = jax.random.split(jax.random.PRNGKey(123), 500)
+    samples = jax.vmap(lambda k, m: func.sample(m, k)['n'], in_axes=(0, None),
+                       out_axes=0)(keys, model)
+
+    assert abs(jnp.mean(samples)) - 10. < 0.2
 
 
 def test_sample_joint_normal():
     model = piper.create_graph()
     model = normal(model, 'weight', jnp.array([0.]), jnp.array([1.]))
     model = normal(model, 'measurement', 'weight', jnp.array([1.]))
-    samples = []
-    for i in range(500):
-        samples.append(func.sample(model)['measurement'])
 
-    samples = jnp.stack(samples)
-    assert abs(jnp.mean(samples)) < 0.1
+    keys = jax.random.split(jax.random.PRNGKey(123), 500)
+    samples = jax.vmap(lambda k, m: func.sample(m, k)['measurement'],
+                       in_axes=(0, None), out_axes=0)(keys, model)
+
+    assert abs(jnp.mean(samples)) < 0.3
 
 
 def test_incompatible_dimensions():
@@ -96,4 +92,5 @@ def test_incompatible_dimensions():
     model = normal(model, 'measurement', 'weight', jnp.array([1.]))
 
     with pytest.raises(RuntimeError):
-        func.sample(model)
+        key = jax.random.PRNGKey(123)
+        func.sample(model, key)
