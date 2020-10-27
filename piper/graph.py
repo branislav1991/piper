@@ -10,7 +10,7 @@ class Node(abc.ABC):
     def __init__(self, name: str):
         self.name = name
         self.dependencies = []
-        
+
 
 class ConstNode(Node):
     def __init__(self, value: jnp.ndarray):
@@ -46,7 +46,7 @@ class Graph:
 
     def __contains__(self, nodename: str):
         return nodename in self.nodes
-        
+
     def __getitem__(self, key):
         return self.nodes[key]
 

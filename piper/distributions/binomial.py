@@ -11,6 +11,7 @@ import jax.numpy as jnp
 from piper.distributions import distribution
 from piper.functional import kl_divergence
 from piper import graph
+from piper import param
 
 
 class Binomial(distribution.Distribution):
@@ -31,57 +32,46 @@ class Binomial(distribution.Distribution):
         """
         super().__init__(name)
 
-        if (not isinstance(n, jnp.ndarray) and not isinstance(n, str)):
-            raise TypeError('n needs to be one of: jnp.ndarray, str')
+        self.n = param.to_param(n)
+        self.p = param.to_param(p)
 
-        if (not isinstance(p, jnp.ndarray) and not isinstance(p, str)):
-            raise TypeError('p needs to be one of: jnp.ndarray, str')
-
-        if isinstance(n, jnp.ndarray) and isinstance(p, jnp.ndarray):
-            if n.shape != p.shape:
+        if isinstance(self.n, param.ConstParam) and isinstance(
+                self.p, param.ConstParam):
+            if self.n.value.shape != self.p.value.shape:
                 raise ValueError('n and p need to have the same shape')
 
-        if isinstance(n, str):
-            self.dependencies.append(n)
-            self.n = n
+        if isinstance(self.n, param.DependentParam):
+            self.dependencies.append(self.n.name)
         else:
-            if n.dtype != jnp.int32 or jnp.any(n < 0):
+            self.n.value = self.n.value.astype(jnp.int32)
+            if jnp.any(self.n.value < 0):
                 raise ValueError('n must be of type int32 and non-negative')
-            self.n = n
 
-        if isinstance(p, str):
-            self.dependencies.append(p)
-            self.p = p
+        if isinstance(self.p, param.DependentParam):
+            self.dependencies.append(self.p.name)
         else:
-            if jnp.any(p < 0.) or jnp.any(p > 1.):
-                raise ValueError('p must be in the interval [0,1]')
-            self.p = p
+            self.p.value = self.p.value.astype(jnp.float32)
+            if jnp.any(self.p.value < 0.) or jnp.any(self.p.value > 1.):
+                raise ValueError('p must be of type float32 and in [0, 1]')
 
-    def sample(self, key: jnp.ndarray, **kwargs):
+    def sample(self, dependencies: dict, key: jnp.ndarray):
         """Sample from the distribution.
 
         Args:
+            dependencies: dict of dependencies.
             key: JAX random key.
-            kwargs: Parameters of the distribution provided as a dictionary.
         """
-        if isinstance(self.n, str):
-            assert self.n in kwargs and kwargs[self.n].dtype == jnp.int32 \
-                and kwargs[self.n] >= 0
-            n_sample = kwargs[self.n]
-        else:
-            n_sample = self.n
-
-        if isinstance(self.p, str):
-            assert self.p in kwargs and (0 <= kwargs[self.p] <= 1)
-            p_sample = kwargs[self.p]
-        else:
-            p_sample = self.p
+        n_sample = self.n.get(dependencies)
+        p_sample = self.p.get(dependencies)
 
         if n_sample.shape != p_sample.shape:
             raise RuntimeError("n and p need to be of same shape")
 
+        assert n_sample.dtype == jnp.int32 and n_sample >= 0
+        assert p_sample.dtype == jnp.float32 and (0 <= p_sample <= 1)
+
         def sample_binomial(n, p, key):
-            samples = jax.random.bernoulli(key, p, shape=(n,))
+            samples = jax.random.bernoulli(key, p, shape=(n, ))
             return jnp.sum(samples)
 
         shape = n_sample.shape
@@ -108,7 +98,9 @@ def binomial(model: graph.Graph, name: str, n: Union[str, jnp.ndarray],
     return model
 
 
-def bernoulli(model: graph.Graph, name: str, p: Union[str, jnp.ndarray],
+def bernoulli(model: graph.Graph,
+              name: str,
+              p: Union[str, jnp.ndarray],
               output_shape: Sequence[int] = None):
     if not model:
         raise ValueError('model may not be None')
@@ -121,20 +113,27 @@ def bernoulli(model: graph.Graph, name: str, p: Union[str, jnp.ndarray],
 
 @kl_divergence.register_kl(Binomial, Binomial)
 def kl_binomial_binomial(dist1, dist2):
-    if isinstance(dist1.n, jnp.ndarray) and isinstance(dist2.n, jnp.ndarray):
-        if jnp.any(dist1.n != dist2.n):
+    if isinstance(dist1.n, param.ConstParam) and isinstance(
+            dist2.n, param.ConstParam):
+
+        n1 = dist1.n.value
+        n2 = dist2.n.value
+        p1 = dist1.p.value
+        p2 = dist2.p.value
+
+        if jnp.any(n1 != n2):
             raise ValueError('KL-divergence only defined for binomial \
                               distributions with same n')
 
-        if jnp.any(dist2.p == 0.0) or jnp.any(dist2.p == 1.0):
-            warnings.warn('KL-divergence will be inf', UserWarning)
-
-        if jnp.any(dist1.p == 0.0) or jnp.any(dist1.p == 1.0):
+        if jnp.any(p1 == 0.0) or jnp.any(p1 == 1.0):
             warnings.warn('KL-divergence will be nan', UserWarning)
 
-        return jnp.log(dist1.p / dist2.p) * dist1.n * dist1.p \
-            + jnp.log((1. - dist1.p) / (1. - dist2.p)) \
-            * dist1.n * (1. - dist1.p)
+        if jnp.any(p2 == 0.0) or jnp.any(p2 == 1.0):
+            warnings.warn('KL-divergence will be inf', UserWarning)
+
+        return jnp.log(p1 / p2) * n1 * p1 \
+            + jnp.log((1. - p1) / (1. - p2)) \
+            * n1 * (1. - p1)
 
     # TODO: we need to measure the kl-divergence in this case by sampling
     raise NotImplementedError

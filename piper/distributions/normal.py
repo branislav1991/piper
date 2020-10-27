@@ -9,11 +9,12 @@ import jax.numpy as jnp
 from piper.distributions import distribution
 from piper.functional import kl_divergence
 from piper import graph
+from piper import param
 
 
 class Normal(distribution.Distribution):
-    def __init__(self, name: str, mu: Union[str, jnp.ndarray],
-                 sigma: Union[str, jnp.ndarray]):
+    def __init__(self, name: str, mu: Union[str, jnp.ndarray, param.Param],
+                 sigma: Union[str, jnp.ndarray, param.Param]):
         """Initializes a normal distribution with mean mu and standard deviation sigma.
 
         Mu and sigma may be multidimensional, in which case they represent
@@ -21,52 +22,39 @@ class Normal(distribution.Distribution):
 
         Args:
             mu: Mean of the distribution. This can be either a named entity
-                specified in the model or a JAX ndarray.
-            sigma: Standard deviation of the distribution. If a JAX ndarray is
-                provided, it must have the same dtype and shape as mu.
+                specified in the model or a JAX ndarray or a Param.
+            sigma: Standard deviation of the distribution. If a concrete value
+                is provided, it must have the same dtype and shape as mu.
         """
         super().__init__(name)
 
-        if (not isinstance(mu, jnp.ndarray) and not isinstance(mu, str)):
-            raise TypeError('Mu needs to be one of: jnp.ndarray, str')
+        self.mu = param.to_param(mu)
+        self.sigma = param.to_param(sigma)
 
-        if (not isinstance(sigma, jnp.ndarray) and not isinstance(sigma, str)):
-            raise TypeError('Sigma needs to be one of: jnp.ndarray, str')
-
-        if isinstance(mu, jnp.ndarray) and isinstance(sigma, jnp.ndarray):
-            if mu.shape != sigma.shape:
+        if isinstance(self.mu, param.ConstParam) and isinstance(
+                self.sigma, param.ConstParam):
+            if self.mu.value.shape != self.sigma.value.shape:
                 raise ValueError('Mu and sigma need to have the same shape')
 
-        if isinstance(mu, str):
-            self.dependencies.append(mu)
-            self.mu = mu
+        if isinstance(self.mu, param.DependentParam):
+            self.dependencies.append(self.mu.name)
         else:
-            self.mu = mu.astype(jnp.float32)
+            self.mu.value = self.mu.value.astype(jnp.float32)
 
-        if isinstance(sigma, str):
-            self.dependencies.append(sigma)
-            self.sigma = sigma
+        if isinstance(self.sigma, param.DependentParam):
+            self.dependencies.append(self.sigma.name)
         else:
-            self.sigma = sigma.astype(jnp.float32)
+            self.sigma.value = self.sigma.value.astype(jnp.float32)
 
-    def sample(self, key: jnp.ndarray, **kwargs):
+    def sample(self, dependencies: dict, key: jnp.ndarray):
         """Sample from the distribution.
 
         Args:
+            dependencies: dict of dependencies.
             key: JAX random key.
-            kwargs: Parameters of the distribution provided as a dictionary.
         """
-        if isinstance(self.mu, str):
-            assert self.mu in kwargs
-            mu_sample = kwargs[self.mu]
-        else:
-            mu_sample = self.mu
-
-        if isinstance(self.sigma, str):
-            assert self.sigma in kwargs
-            sigma_sample = kwargs[self.sigma]
-        else:
-            sigma_sample = self.sigma
+        mu_sample = self.mu.get(dependencies)
+        sigma_sample = self.sigma.get(dependencies)
 
         if mu_sample.shape != sigma_sample.shape:
             raise RuntimeError("Mu and sigma need to be of same shape")
@@ -93,15 +81,19 @@ def normal(model: graph.Graph, name: str, mu: Union[str, jnp.ndarray],
 
 @kl_divergence.register_kl(Normal, Normal)
 def kl_normal_normal(dist1, dist2):
-    if isinstance(dist1.mu, jnp.ndarray) and isinstance(dist2.mu, jnp.ndarray):
-        if dist1.mu.shape != dist2.mu.shape:
+    if isinstance(dist1.mu, param.ConstParam) and isinstance(
+            dist2.mu, param.ConstParam):
+        if dist1.mu.value.shape != dist2.mu.value.shape:
             raise ValueError('Mu and sigma need to have the same shape')
 
+        mu1 = dist1.mu.value
+        mu2 = dist2.mu.value
+        sigma1 = dist1.sigma.value
+        sigma2 = dist2.sigma.value
+
         k = 1
-        return 0.5 * (
-            (dist1.sigma / dist2.sigma) + (dist2.mu - dist1.mu)
-            * (1. / dist2.sigma)
-            * (dist2.mu - dist1.mu) - k + jnp.log(dist2.sigma / dist1.sigma))
+        return 0.5 * ((sigma1 / sigma2) + (mu2 - mu1) * (1. / sigma2)
+                      * (mu2 - mu1) - k + jnp.log(sigma2 / sigma1))
 
     # TODO: we need to measure the kl-divergence in this case by sampling
     raise NotImplementedError

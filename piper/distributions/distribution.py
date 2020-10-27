@@ -13,12 +13,12 @@ class Distribution(graph.Node):
         super().__init__(name)
 
     @abc.abstractmethod
-    def sample(self, key: jnp.ndarray, **kwargs):
+    def sample(self, dependencies: dict, key: jnp.ndarray):
         """Sample from the distribution.
 
         Args:
+            dependencies: dict of dependencies.
             key: JAX random key.
-            kwargs: Parameters of the distribution provided as a dictionary.
         """
         raise NotImplementedError
 

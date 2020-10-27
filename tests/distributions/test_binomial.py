@@ -34,35 +34,33 @@ def test_throw_bad_params():
 
 def test_sample_binomial():
     model = piper.create_graph()
-    model = binomial(model, 'n',
-                     jnp.array([2]), jnp.array([0.5]))
+    model = binomial(model, 'n', jnp.array([2]), jnp.array([0.5]))
 
     keys = jax.random.split(jax.random.PRNGKey(123), 500)
     samples = jax.vmap(lambda k, m: func.sample(m, k)['n'].value,
-                       in_axes=(0, None), out_axes=0)(keys, model)
+                       in_axes=(0, None),
+                       out_axes=0)(keys, model)
 
     assert jnp.median(samples) == 1
 
     model = piper.create_graph()
-    model = binomial(model, 'n',
-                     jnp.array([1]), jnp.array([0.]))
+    model = binomial(model, 'n', jnp.array([1]), jnp.array([0.]))
     key = jax.random.PRNGKey(123)
     sample = func.sample(model, key)['n'].value
     assert sample == 0
 
     model = piper.create_graph()
-    model = binomial(model, 'n',
-                     jnp.array([10]), jnp.array([1.]))
+    model = binomial(model, 'n', jnp.array([10]), jnp.array([1.]))
     key = jax.random.PRNGKey(123)
     sample = func.sample(model, key)['n'].value
     assert sample == 10
 
     model = piper.create_graph()
-    model = binomial(model, 'n',
-                     jnp.array([10]), jnp.array([0.5]))
+    model = binomial(model, 'n', jnp.array([10]), jnp.array([0.5]))
 
     keys = jax.random.split(jax.random.PRNGKey(123), 500)
-    samples = jax.vmap(lambda k, m: func.sample(m, k)['n'].value, in_axes=(0, None),
+    samples = jax.vmap(lambda k, m: func.sample(m, k)['n'].value,
+                       in_axes=(0, None),
                        out_axes=0)(keys, model)
 
     assert jnp.median(samples) == 5
@@ -107,8 +105,10 @@ def test_kl_normal_normal_multi_dimensional():
         func.kl_divergence(model, 'n4', 'n3')
 
     assert jnp.all(jnp.abs(func.kl_divergence(model, 'n1', 'n3')) < 1e-6)
-    assert jnp.all(jnp.abs(func.kl_divergence(model, 'n1', 'n5')
-                   - jnp.array([5.1082563, 0.0])) < 1e-6)
+    assert jnp.all(
+        jnp.abs(
+            func.kl_divergence(model, 'n1', 'n5')
+            - jnp.array([5.1082563, 0.0])) < 1e-6)
 
 
 # def test_sample_beta_binomial():
@@ -120,7 +120,6 @@ def test_kl_normal_normal_multi_dimensional():
 
 #     samples = jnp.stack(samples)
 #     assert abs(jnp.mean(samples)) < 0.1
-
 
 # def test_incompatible_dimensions():
 #     model = piper.create_graph()

@@ -32,7 +32,7 @@ def sample(model: graph.Graph, key: jnp.ndarray) -> dict:
 
                 model = graph.replace_node(
                     model, node.name,
-                    graph.ConstNode(node.sample(key, **injected_deps)))
+                    graph.ConstNode(node.sample(injected_deps, key)))
             else:
                 raise TypeError("Unknown node type")
 
