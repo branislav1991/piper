@@ -2,11 +2,9 @@
 # See the file LICENSE for copying permission.
 
 import abc
-from typing import Sequence, Union
+from typing import Union
 
 import jax.numpy as jnp
-
-from piper import graph
 
 
 class Param(abc.ABC):
@@ -44,7 +42,7 @@ class DependentParam(Param):
         return dependencies[self.name]
 
 
-def sampling_param(name: str) -> DependentParam:
+def dependent_param(name: str) -> DependentParam:
     return DependentParam(name)
 
 
@@ -79,7 +77,7 @@ def to_param(val: Union[jnp.ndarray, str, Param]):
     if isinstance(val, jnp.ndarray):
         return const_param(val)
     elif isinstance(val, str):
-        return sampling_param(val)
+        return dependent_param(val)
     elif isinstance(val, Param):
         return val
     else:
