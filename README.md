@@ -46,7 +46,7 @@ coin flip being heads ("obs") is given by a sample from the Beta distribution.
 After specifying the model, we can sample from it by calling
 
     key = jax.random.PRNGKey(123)
-    sample = func.sample(model(), key)
+    sample = func.sample(model(), key)['obs'].value
     
 This will return a dictionary of sampled values.
 

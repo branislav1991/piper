@@ -8,17 +8,32 @@ from piper.distributions import distribution
 
 
 def sample(model: graph.Graph, key: jnp.ndarray) -> dict:
+    """Samples all distributions from the given model.
+
+    Args:
+        model: model to sample from.
+        key: JAX PRNG key.
+
+    Returns:
+        New model with Distribution nodes replaced by ConstNode
+        with the sampled value.
+    """
     layers = model.topological_sort()
-    inferred = {}
     for layer in layers:
         for node in layer:
             if isinstance(node, distribution.Distribution):
                 injected_deps = {}
                 for d in node.dependencies:
-                    injected_deps[d] = inferred[d]
+                    if not isinstance(model[d], graph.ConstNode):
+                        raise RuntimeError("Invalid inference on \
+                            non-const dependency")
 
-                inferred[node.name] = node.sample(key, **injected_deps)
+                    injected_deps[d] = model[d].value
+
+                model = graph.replace_node(
+                    model, node.name,
+                    graph.ConstNode(node.sample(key, **injected_deps)))
             else:
                 raise TypeError("Unknown node type")
 
-    return inferred
+    return model

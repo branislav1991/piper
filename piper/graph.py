@@ -3,11 +3,21 @@
 
 import abc
 
+import jax.numpy as jnp
+
 
 class Node(abc.ABC):
     def __init__(self, name: str):
         self.name = name
         self.dependencies = []
+        
+
+class ConstNode(Node):
+    def __init__(self, value: jnp.ndarray):
+        if not isinstance(value, jnp.ndarray):
+            raise ValueError("ConstNode requires an ndarray as value")
+
+        self.value = value
 
 
 class Graph:
@@ -36,6 +46,9 @@ class Graph:
 
     def __contains__(self, nodename: str):
         return nodename in self.nodes
+        
+    def __getitem__(self, key):
+        return self.nodes[key]
 
     def topological_sort(self) -> list:
         """Return nodes topologically sorted based on their dependencies.
@@ -74,3 +87,16 @@ class Graph:
 def create_graph() -> Graph:
     graph = Graph()
     return graph
+
+
+def replace_node(model: Graph, node_name: str, new_node: Node) -> Graph:
+    """Replaces a node in the graph by a new node.
+
+    Returns:
+        Model with replaced node.
+    """
+    if node_name not in model:
+        raise ValueError(f'Node {node_name} not in model')
+
+    model.nodes[node_name] = new_node
+    return model

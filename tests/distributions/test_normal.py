@@ -59,8 +59,8 @@ def test_sample_normal():
     model = normal(model, 'n', jnp.array([0.]), jnp.array([1.]))
 
     keys = jax.random.split(jax.random.PRNGKey(123), 500)
-    samples = jax.vmap(lambda k, m: func.sample(m, k)['n'], in_axes=(0, None),
-                       out_axes=0)(keys, model)
+    samples = jax.vmap(lambda k, m: func.sample(m, k)['n'].value,
+                       in_axes=(0, None), out_axes=0)(keys, model)
 
     assert abs(jnp.mean(samples)) < 0.2
 
@@ -68,8 +68,8 @@ def test_sample_normal():
     model = normal(model, 'n', jnp.array([10.]), jnp.array([1.]))
 
     keys = jax.random.split(jax.random.PRNGKey(123), 500)
-    samples = jax.vmap(lambda k, m: func.sample(m, k)['n'], in_axes=(0, None),
-                       out_axes=0)(keys, model)
+    samples = jax.vmap(lambda k, m: func.sample(m, k)['n'].value,
+                       in_axes=(0, None), out_axes=0)(keys, model)
 
     assert abs(jnp.mean(samples)) - 10. < 0.2
 
@@ -80,7 +80,7 @@ def test_sample_joint_normal():
     model = normal(model, 'measurement', 'weight', jnp.array([1.]))
 
     keys = jax.random.split(jax.random.PRNGKey(123), 500)
-    samples = jax.vmap(lambda k, m: func.sample(m, k)['measurement'],
+    samples = jax.vmap(lambda k, m: func.sample(m, k)['measurement'].value,
                        in_axes=(0, None), out_axes=0)(keys, model)
 
     assert abs(jnp.mean(samples)) < 0.3

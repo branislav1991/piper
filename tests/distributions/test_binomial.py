@@ -38,8 +38,8 @@ def test_sample_binomial():
                      jnp.array([2]), jnp.array([0.5]))
 
     keys = jax.random.split(jax.random.PRNGKey(123), 500)
-    samples = jax.vmap(lambda k, m: func.sample(m, k)['n'], in_axes=(0, None),
-                       out_axes=0)(keys, model)
+    samples = jax.vmap(lambda k, m: func.sample(m, k)['n'].value,
+                       in_axes=(0, None), out_axes=0)(keys, model)
 
     assert jnp.median(samples) == 1
 
@@ -47,14 +47,14 @@ def test_sample_binomial():
     model = binomial(model, 'n',
                      jnp.array([1]), jnp.array([0.]))
     key = jax.random.PRNGKey(123)
-    sample = func.sample(model, key)['n']
+    sample = func.sample(model, key)['n'].value
     assert sample == 0
 
     model = piper.create_graph()
     model = binomial(model, 'n',
                      jnp.array([10]), jnp.array([1.]))
     key = jax.random.PRNGKey(123)
-    sample = func.sample(model, key)['n']
+    sample = func.sample(model, key)['n'].value
     assert sample == 10
 
     model = piper.create_graph()
@@ -62,7 +62,7 @@ def test_sample_binomial():
                      jnp.array([10]), jnp.array([0.5]))
 
     keys = jax.random.split(jax.random.PRNGKey(123), 500)
-    samples = jax.vmap(lambda k, m: func.sample(m, k)['n'], in_axes=(0, None),
+    samples = jax.vmap(lambda k, m: func.sample(m, k)['n'].value, in_axes=(0, None),
                        out_axes=0)(keys, model)
 
     assert jnp.median(samples) == 5
