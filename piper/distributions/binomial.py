@@ -78,6 +78,7 @@ class Binomial(distribution.Distribution):
         def sample_binomial(n, p, key):
             samples = jax.random.bernoulli(key, p, shape=(n, ))
             return jnp.sum(samples)
+        sample_binomial = jax.jit(sample_binomial, static_argnums=0)
 
         shape = n_sample.shape
         keys = jax.random.split(key, n_sample.size)
