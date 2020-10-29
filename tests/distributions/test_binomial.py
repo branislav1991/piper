@@ -176,8 +176,8 @@ def test_kl_normal_normal_multi_dimensional():
     assert jnp.all(jnp.abs(func.kl_divergence(model, 'n1', 'n3')) < 1e-6)
     assert jnp.all(
         jnp.abs(
-            func.kl_divergence(model, 'n1', 'n5') -
-            jnp.array([5.1082563, 0.0])) < 1e-6)
+            func.kl_divergence(model, 'n1', 'n5')
+            - jnp.array([5.1082563, 0.0])) < 1e-6)
 
 
 # def test_sample_beta_binomial():

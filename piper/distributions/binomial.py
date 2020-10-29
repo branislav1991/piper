@@ -1,7 +1,7 @@
 # Copyright (c) 2020 Branislav Holländer. All rights reserved.
 # See the file LICENSE for copying permission.
 
-from typing import Union, Sequence
+from typing import Union
 import warnings
 
 import jax
