@@ -47,6 +47,16 @@ def dependent_param(name: str) -> DependentParam:
 
 
 class FlexibleParam(Param):
+    """Parameter with fixed single value and flexible shape.
+
+    Conforms to other parameters as necessary.
+
+    Example:
+        model = piper.create_graph()
+        model = normal(model, 'n', jnp.zeros((10, 10), dtype=jnp.float32),
+                       param.FlexibleParam(jnp.ndarray(1.0)))
+        # will expand sigma to (10, 10)
+    """
     def __init__(self, value: jnp.ndarray):
         if not isinstance(value, jnp.ndarray) or value.shape != ():
             raise ValueError('val needs to be of type ndarray and of \
@@ -59,7 +69,7 @@ class FlexibleParam(Param):
             raise ValueError("shape not provided")
 
         shape = kwargs['shape']
-        return self.value.repeat(shape)
+        return jnp.tile(self.value, shape)
 
 
 def flexible_param(value: jnp.ndarray):

@@ -7,7 +7,7 @@ from piper import graph
 from piper.distributions import distribution
 
 
-def sample(model: graph.Graph, key: jnp.ndarray) -> dict:
+def sample(model: graph.Graph, key: jnp.ndarray) -> graph.Graph:
     """Samples all distributions from the given model.
 
     Args:

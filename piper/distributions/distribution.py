@@ -2,10 +2,12 @@
 # See the file LICENSE for copying permission.
 
 import abc
+import collections
 
 import jax.numpy as jnp
 
 from piper import graph
+from piper import param
 
 
 class Distribution(graph.Node):
@@ -34,3 +36,36 @@ class Distribution(graph.Node):
             Log probability of x under the distribution.
         """
         raise NotImplementedError
+
+
+def _get_samples(params: list, dependencies: dict) -> list:
+    """Obtains samples from parameters of a node.
+
+    Requires that all parameters have the same shape but
+    does not check this requirement.
+
+    Returns:
+        List of samples in the order of params.
+    """
+    non_flex_samples = [
+        p.get(dependencies) for p in params
+        if not isinstance(p, param.FlexibleParam)
+    ]
+
+    if not non_flex_samples:
+        raise ValueError("No unflexible params provided")
+
+    shape = non_flex_samples[0].shape
+    flex_param_samples = [
+        p.get(dependencies, shape=shape) for p in params
+        if isinstance(p, param.FlexibleParam)
+    ]
+
+    result = collections.deque()
+    for i in range(len(params) - 1, -1, -1):
+        if isinstance(params[i], param.FlexibleParam):
+            result.appendleft(flex_param_samples.pop())
+        else:
+            result.appendleft(non_flex_samples.pop())
+
+    return result

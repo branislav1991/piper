@@ -35,6 +35,10 @@ class Binomial(distribution.Distribution):
         self.n = param.to_param(n)
         self.p = param.to_param(p)
 
+        if isinstance(self.n, param.FlexibleParam) and \
+                isinstance(self.p, param.FlexibleParam):
+            raise ValueError('n and p cannot both be flexible')
+
         if isinstance(self.n, param.ConstParam) and isinstance(
                 self.p, param.ConstParam):
             if self.n.value.shape != self.p.value.shape:
@@ -61,14 +65,15 @@ class Binomial(distribution.Distribution):
             dependencies: dict of dependencies.
             key: JAX random key.
         """
-        n_sample = self.n.get(dependencies)
-        p_sample = self.p.get(dependencies)
+        n_sample, p_sample = distribution._get_samples([self.n, self.p],
+                                                       dependencies)
 
         if n_sample.shape != p_sample.shape:
             raise RuntimeError("n and p need to be of same shape")
 
-        assert n_sample.dtype == jnp.int32 and n_sample >= 0
-        assert p_sample.dtype == jnp.float32 and (0 <= p_sample <= 1)
+        assert n_sample.dtype == jnp.int32 and jnp.all(n_sample >= 0)
+        assert p_sample.dtype == jnp.float32 and jnp.all(
+            p_sample <= 1) and jnp.all(0 <= p_sample)
 
         def sample_binomial(n, p, key):
             samples = jax.random.bernoulli(key, p, shape=(n, ))
@@ -100,12 +105,11 @@ def binomial(model: graph.Graph, name: str, n: Union[str, jnp.ndarray],
 
 def bernoulli(model: graph.Graph,
               name: str,
-              p: Union[str, jnp.ndarray],
-              output_shape: Sequence[int] = None):
+              p: Union[str, jnp.ndarray]):
     if not model:
         raise ValueError('model may not be None')
 
-    n = jnp.ones(p.shape, dtype=jnp.int32)
+    n = param.flexible_param(jnp.array(1, dtype=jnp.int32))
     dist = Binomial(name, n, p)
     model.add(dist)
     return model

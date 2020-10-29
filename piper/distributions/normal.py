@@ -31,6 +31,10 @@ class Normal(distribution.Distribution):
         self.mu = param.to_param(mu)
         self.sigma = param.to_param(sigma)
 
+        if isinstance(self.mu, param.FlexibleParam) and \
+                isinstance(self.sigma, param.FlexibleParam):
+            raise ValueError('Mu and sigma cannot both be flexible')
+
         if isinstance(self.mu, param.ConstParam) and isinstance(
                 self.sigma, param.ConstParam):
             if self.mu.value.shape != self.sigma.value.shape:
@@ -53,8 +57,8 @@ class Normal(distribution.Distribution):
             dependencies: dict of dependencies.
             key: JAX random key.
         """
-        mu_sample = self.mu.get(dependencies)
-        sigma_sample = self.sigma.get(dependencies)
+        mu_sample, sigma_sample = distribution._get_samples(
+            [self.mu, self.sigma], dependencies)
 
         if mu_sample.shape != sigma_sample.shape:
             raise RuntimeError("Mu and sigma need to be of same shape")
@@ -92,8 +96,8 @@ def kl_normal_normal(dist1, dist2):
         sigma2 = dist2.sigma.value
 
         k = 1
-        return 0.5 * ((sigma1 / sigma2) + (mu2 - mu1) * (1. / sigma2)
-                      * (mu2 - mu1) - k + jnp.log(sigma2 / sigma1))
+        return 0.5 * ((sigma1 / sigma2) + (mu2 - mu1) * (1. / sigma2) *
+                      (mu2 - mu1) - k + jnp.log(sigma2 / sigma1))
 
     # TODO: we need to measure the kl-divergence in this case by sampling
     raise NotImplementedError
