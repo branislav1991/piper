@@ -13,11 +13,16 @@ class Node(abc.ABC):
 
 
 class ConstNode(Node):
-    def __init__(self, value: jnp.ndarray):
+    def __init__(self, name: str, value: jnp.ndarray):
+        super().__init__(name)
         if not isinstance(value, jnp.ndarray):
             raise ValueError("ConstNode requires an ndarray as value")
 
         self.value = value
+
+
+def const_node(name: str, value: jnp.ndarray):
+    return ConstNode(name, value)
 
 
 class Graph:

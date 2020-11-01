@@ -65,5 +65,55 @@ embedded in the model API and can be used like this:
         return m
 
     kl_normal_normal = func.kl_divergence(model(), 'n1', 'n2') # returns 1.0
+    
+### Conditioning
+    
+Conditioning on Bayesian network variables is easy:
+
+    import piper.functional as func
+
+    def model():
+        m = piper.create_model()
+        m = normal(m, 'n1', jnp.array([0.]), jnp.array([1.]))
+        m = normal(m, 'n2', 'n1', jnp.array([1.]))
+        m = func.condition(m, 'n1', jnp.array([0.5]))
+        
+        return m
+        
+You may now sample from the conditional distribution.
+
+### Metropolis-Hastings
+
+If you condition on a variable further down the Bayesian network graph, you will
+effectively have to sample from the posterior distribution. Trying to do so in the
+naive way will result in an exception:
+
+    import piper.functional as func
+
+    def model():
+        m = piper.create_model()
+        m = normal(m, 'n1', jnp.array([0.]), jnp.array([1.]))
+        m = normal(m, 'n2', 'n1', jnp.array([1.]))
+        m = func.condition(m, 'n2', jnp.array([0.5]))
+        
+        return m
+        
+    key = jax.random.PRNGKey(123)
+    sample = func.sample(model(), key)['n1'].value  # will throw a RuntimeError
+    
+In this case, you will need to rely on a sampling algorithm to obtain a sample from the
+posterior. At the moment, piper supports only the Metropolis-Hastings algorithm:
+
+    # With the model defined as above
+    proposal = piper.create_model()
+    proposal = normal(proposal, 'n1' jnp.array([0.]), jnp.array([1.]))
+    model = func.metropolis_hastings(model(), proposal=proposal, burn_in_steps=500)
+
+    samples = []
+    keys = jax.random.split(PRNGKey(123), 100)
+    for i in range(100):  # generate 100 samples after burn-in
+        samples.append(func.sample(model, keys[i]))
+        
+The model returned by *func.metropolis_hastings* will automatically be sampled by the Metropolis-Hastings sampler.
 
 [JAX]: https://github.com/google/jax

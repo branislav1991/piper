@@ -198,3 +198,45 @@ def test_kl_normal_normal_multi_dimensional():
 
 #     with pytest.raises(RuntimeError):
 #         func.sample(model)
+
+
+def test_sample_conditioned():
+    model = piper.create_graph()
+    model = bernoulli(model, 'n1', jnp.array([0.5]))
+    model = binomial(model, 'n2', 'n1', jnp.array([0.5]))
+    model = func.condition(model, 'n1', jnp.array([1]))
+
+    keys = jax.random.split(jax.random.PRNGKey(123), 500)
+    samples = jax.vmap(lambda k, m: func.sample(m, k)['n2'].value,
+                       in_axes=(0, None),
+                       out_axes=0)(keys, model)
+
+    assert jnp.mean(samples) > 0.4 and jnp.mean(samples) < 0.6
+
+
+def test_sample_conditioned_invalid_value_error():
+    model = piper.create_graph()
+    model = bernoulli(model, 'n1', jnp.array([0.5]))
+    model = binomial(model, 'n2', jnp.array([1]), 'n1')
+    with pytest.raises(ValueError):  # cannot condition n on decimal value
+        model = func.condition(model, 'n1', jnp.array([0.5]))
+
+    model = func.condition(model, 'n1', jnp.array([1]))
+
+    key = jax.random.PRNGKey(123)
+    with pytest.raises(TypeError):  # cannot condition p on int
+        func.sample(model, key)
+
+
+def test_sample_conditioned_posterior_error():
+    """This test should return an error as direct sampling from
+    posterior is not possible.
+    """
+    model = piper.create_graph()
+    model = bernoulli(model, 'n1', jnp.array([0.5]))
+    model = binomial(model, 'n2', jnp.array([1]), 'n1')
+    model = func.condition(model, 'n2', jnp.array([0]))
+
+    key = jax.random.PRNGKey(123)
+    with pytest.raises(RuntimeError):
+        func.sample(model, key)

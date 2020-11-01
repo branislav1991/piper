@@ -14,7 +14,7 @@ from piper import graph
 from piper import param
 
 
-class Binomial(distribution.Distribution):
+class Binomial(distribution.DistributionNode):
     def __init__(self, name: str, n: Union[str, jnp.ndarray],
                  p: Union[str, jnp.ndarray]):
         """Initializes a binomial distribution with n trials and probability p.
@@ -58,6 +58,12 @@ class Binomial(distribution.Distribution):
             if jnp.any(self.p.value < 0.) or jnp.any(self.p.value > 1.):
                 raise ValueError('p must be of type float32 and in [0, 1]')
 
+        def sample_binomial(n, p, key):
+            samples = jax.random.bernoulli(key, p, shape=(n, ))
+            return jnp.sum(samples)
+
+        self.sample_binomial = jax.jit(sample_binomial, static_argnums=0)
+
     def sample(self, dependencies: dict, key: jnp.ndarray):
         """Sample from the distribution.
 
@@ -71,14 +77,12 @@ class Binomial(distribution.Distribution):
         if n_sample.shape != p_sample.shape:
             raise RuntimeError("n and p need to be of same shape")
 
-        assert n_sample.dtype == jnp.int32 and jnp.all(n_sample >= 0)
-        assert p_sample.dtype == jnp.float32 and jnp.all(
-            p_sample <= 1) and jnp.all(0 <= p_sample)
+        if n_sample.dtype != jnp.int32 or jnp.any(n_sample < 0):
+            raise TypeError('n needs to be jnp.int32 and non-negative')
 
-        def sample_binomial(n, p, key):
-            samples = jax.random.bernoulli(key, p, shape=(n, ))
-            return jnp.sum(samples)
-        sample_binomial = jax.jit(sample_binomial, static_argnums=0)
+        if p_sample.dtype != jnp.float32 or jnp.any(p_sample > 1) or jnp.any(
+                p_sample < 0):
+            raise TypeError('p needs to be jnp.float32 and between 0 and 1')
 
         shape = n_sample.shape
         keys = jax.random.split(key, n_sample.size)
@@ -86,12 +90,27 @@ class Binomial(distribution.Distribution):
         p_sample = p_sample.reshape((p_sample.size))
         samp = []
         for n, p, k in zip(n_sample, p_sample, keys):
-            samp.append(sample_binomial(n, p, k))
+            samp.append(self.sample_binomial(n, p, k))
 
         return jnp.stack(samp).reshape(shape)
 
     def log_prob(self, x: jnp.ndarray) -> jnp.ndarray:
         raise NotImplementedError
+
+    def _check_valid_condition(self, x: jnp.ndarray):
+        if x.dtype != jnp.int32 or jnp.any(x < 0):
+            return False
+
+        if isinstance(self.p, param.ConstParam) \
+                and x.shape != self.p.value.shape:
+            return False
+
+        if isinstance(self.n, param.ConstParam) \
+                and (x.shape != self.n.value.shape
+                     or jnp.any(x > self.n.value)):
+            return False
+
+        return True
 
 
 def binomial(model: graph.Graph, name: str, n: Union[str, jnp.ndarray],
@@ -104,9 +123,7 @@ def binomial(model: graph.Graph, name: str, n: Union[str, jnp.ndarray],
     return model
 
 
-def bernoulli(model: graph.Graph,
-              name: str,
-              p: Union[str, jnp.ndarray]):
+def bernoulli(model: graph.Graph, name: str, p: Union[str, jnp.ndarray]):
     if not model:
         raise ValueError('model may not be None')
 

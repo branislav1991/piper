@@ -10,7 +10,7 @@ from piper import graph
 from piper import param
 
 
-class Distribution(graph.Node):
+class DistributionNode(graph.Node):
     def __init__(self, name: str):
         super().__init__(name)
 
@@ -34,6 +34,12 @@ class Distribution(graph.Node):
 
         Returns:
             Log probability of x under the distribution.
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _check_valid_condition(self, x: jnp.ndarray) -> bool:
+        """Checks if x is a valid output value for the distribution.
         """
         raise NotImplementedError
 
@@ -69,3 +75,20 @@ def _get_samples(params: list, dependencies: dict) -> list:
             result.appendleft(non_flex_samples.pop())
 
     return result
+
+
+class ConditionedNode(graph.Node):
+    def __init__(self, node: graph.Node, value: jnp.ndarray):
+        super().__init__(node.name)
+        if not isinstance(node, DistributionNode):
+            raise ValueError("Conditioned node must be a DistributionNode")
+
+        if not node._check_valid_condition(value):
+            raise ValueError("Conditioned value invalid for given node")
+
+        self.value = value
+        self.dependencies = node.dependencies
+
+
+def conditioned_node(node: graph.Node, value: jnp.ndarray):
+    return ConditionedNode(node, value)

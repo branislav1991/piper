@@ -128,3 +128,49 @@ def test_incompatible_dimensions():
     with pytest.raises(RuntimeError):
         key = jax.random.PRNGKey(123)
         func.sample(model, key)
+
+
+def test_sample_conditioned():
+    model = piper.create_graph()
+    model = normal(model, 'weight', jnp.array([0.]), jnp.array([1.]))
+    model = normal(model, 'measurement', 'weight', jnp.array([1.]))
+    model = func.condition(model, 'weight', jnp.array([0.]))
+
+    keys = jax.random.split(jax.random.PRNGKey(123), 500)
+    samples = jax.vmap(lambda k, m: func.sample(m, k)['measurement'].value,
+                       in_axes=(0, None),
+                       out_axes=0)(keys, model)
+
+    assert abs(jnp.mean(samples)) < 0.2
+
+
+def test_sample_conditioned_invalid_value_error():
+    model = piper.create_graph()
+    model = normal(model, 'n1', jnp.array([0.]), jnp.array([1.]))
+    model = normal(model, 'n2', 'n1', jnp.array([1.]))
+    with pytest.raises(ValueError):  # cannot condition n1 on int
+        model = func.condition(model, 'n1', jnp.array([0]))
+
+
+def test_sample_conditioned_posterior_error():
+    """This test should return an error as direct sampling from
+    posterior is not possible.
+    """
+    model = piper.create_graph()
+    model = normal(model, 'n1', jnp.array([0.]), jnp.array([1.]))
+    model = normal(model, 'n2', 'n1', jnp.array([1.]))
+    model = func.condition(model, 'n2', jnp.array([0.]))
+
+    key = jax.random.PRNGKey(123)
+    with pytest.raises(RuntimeError):
+        func.sample(model, key)
+
+    model = piper.create_graph()
+    model = normal(model, 'n1', jnp.array([0.]), jnp.array([1.]))
+    model = normal(model, 'n2', 'n1', jnp.array([1.]))
+    model = normal(model, 'n3', 'n2', jnp.array([1.]))
+    model = func.condition(model, 'n3', jnp.array([0.]))
+
+    key = jax.random.PRNGKey(123)
+    with pytest.raises(RuntimeError):
+        func.sample(model, key)

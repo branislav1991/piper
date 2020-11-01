@@ -12,7 +12,7 @@ from piper import graph
 from piper import param
 
 
-class Normal(distribution.Distribution):
+class Normal(distribution.DistributionNode):
     def __init__(self, name: str, mu: Union[str, jnp.ndarray, param.Param],
                  sigma: Union[str, jnp.ndarray, param.Param]):
         """Initializes a normal distribution with mean mu and standard deviation sigma.
@@ -63,6 +63,12 @@ class Normal(distribution.Distribution):
         if mu_sample.shape != sigma_sample.shape:
             raise RuntimeError("Mu and sigma need to be of same shape")
 
+        if mu_sample.dtype != jnp.float32:
+            raise TypeError('mu needs to be jnp.float32')
+
+        if sigma_sample.dtype != jnp.float32:
+            raise TypeError('sigma needs to be jnp.float32')
+
         std_norm = jax.random.normal(key,
                                      shape=mu_sample.shape,
                                      dtype=mu_sample.dtype)
@@ -71,6 +77,18 @@ class Normal(distribution.Distribution):
 
     def log_prob(self, x: jnp.ndarray) -> jnp.ndarray:
         raise NotImplementedError
+
+    def _check_valid_condition(self, x: jnp.ndarray):
+        if x.dtype != jnp.float32:
+            return False
+
+        if (isinstance(self.mu, param.ConstParam)
+            and x.shape != self.mu.value.shape) \
+            or (isinstance(self.sigma, param.ConstParam)
+                and x.shape != self.sigma.value.shape):
+            return False
+
+        return True
 
 
 def normal(model: graph.Graph, name: str, mu: Union[str, jnp.ndarray],
@@ -96,8 +114,8 @@ def kl_normal_normal(dist1, dist2):
         sigma2 = dist2.sigma.value
 
         k = 1
-        return 0.5 * ((sigma1 / sigma2) + (mu2 - mu1) * (1. / sigma2) *
-                      (mu2 - mu1) - k + jnp.log(sigma2 / sigma1))
+        return 0.5 * ((sigma1 / sigma2) + (mu2 - mu1) * (1. / sigma2)
+                      * (mu2 - mu1) - k + jnp.log(sigma2 / sigma1))
 
     # TODO: we need to measure the kl-divergence in this case by sampling
     raise NotImplementedError
