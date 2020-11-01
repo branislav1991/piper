@@ -15,9 +15,6 @@ class Param(abc.ABC):
 
 class ConstParam(Param):
     def __init__(self, value: jnp.ndarray):
-        if not isinstance(value, jnp.ndarray):
-            raise ValueError("ConstParam requires an ndarray as value")
-
         self.value = value
 
     def get(self, dependencies: dict, **kwargs):
@@ -30,10 +27,6 @@ def const_param(value: jnp.ndarray) -> ConstParam:
 
 class DependentParam(Param):
     def __init__(self, name: str):
-        if not isinstance(name, str):
-            raise ValueError(
-                "DependentParam requires the parameter name as a str")
-
         self.name = name
 
     def get(self, dependencies: dict, **kwargs):
@@ -58,7 +51,7 @@ class FlexibleParam(Param):
         # will expand sigma to (10, 10)
     """
     def __init__(self, value: jnp.ndarray):
-        if not isinstance(value, jnp.ndarray) or value.shape != ():
+        if value.shape != ():
             raise ValueError('val needs to be of type ndarray and of \
                 empty shape')
 

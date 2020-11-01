@@ -31,24 +31,11 @@ class Normal(distribution.DistributionNode):
         self.mu = param.to_param(mu)
         self.sigma = param.to_param(sigma)
 
-        if isinstance(self.mu, param.FlexibleParam) and \
-                isinstance(self.sigma, param.FlexibleParam):
-            raise ValueError('Mu and sigma cannot both be flexible')
-
-        if isinstance(self.mu, param.ConstParam) and isinstance(
-                self.sigma, param.ConstParam):
-            if self.mu.value.shape != self.sigma.value.shape:
-                raise ValueError('Mu and sigma need to have the same shape')
-
         if isinstance(self.mu, param.DependentParam):
             self.dependencies.append(self.mu.name)
-        else:
-            self.mu.value = self.mu.value.astype(jnp.float32)
 
         if isinstance(self.sigma, param.DependentParam):
             self.dependencies.append(self.sigma.name)
-        else:
-            self.sigma.value = self.sigma.value.astype(jnp.float32)
 
     def sample(self, dependencies: dict, key: jnp.ndarray):
         """Sample from the distribution.
@@ -63,12 +50,6 @@ class Normal(distribution.DistributionNode):
         if mu_sample.shape != sigma_sample.shape:
             raise RuntimeError("Mu and sigma need to be of same shape")
 
-        if mu_sample.dtype != jnp.float32:
-            raise TypeError('mu needs to be jnp.float32')
-
-        if sigma_sample.dtype != jnp.float32:
-            raise TypeError('sigma needs to be jnp.float32')
-
         std_norm = jax.random.normal(key,
                                      shape=mu_sample.shape,
                                      dtype=mu_sample.dtype)
@@ -77,18 +58,6 @@ class Normal(distribution.DistributionNode):
 
     def log_prob(self, x: jnp.ndarray) -> jnp.ndarray:
         raise NotImplementedError
-
-    def _check_valid_condition(self, x: jnp.ndarray):
-        if x.dtype != jnp.float32:
-            return False
-
-        if (isinstance(self.mu, param.ConstParam)
-            and x.shape != self.mu.value.shape) \
-            or (isinstance(self.sigma, param.ConstParam)
-                and x.shape != self.sigma.value.shape):
-            return False
-
-        return True
 
 
 def normal(model: graph.Graph, name: str, mu: Union[str, jnp.ndarray],
@@ -105,8 +74,6 @@ def normal(model: graph.Graph, name: str, mu: Union[str, jnp.ndarray],
 def kl_normal_normal(dist1, dist2):
     if isinstance(dist1.mu, param.ConstParam) and isinstance(
             dist2.mu, param.ConstParam):
-        if dist1.mu.value.shape != dist2.mu.value.shape:
-            raise ValueError('Mu and sigma need to have the same shape')
 
         mu1 = dist1.mu.value
         mu2 = dist2.mu.value

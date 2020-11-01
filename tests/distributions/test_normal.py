@@ -12,21 +12,6 @@ from piper.distributions import normal
 from piper import param
 
 
-def test_throw_bad_params():
-    # Should fail because of missing model
-    with pytest.raises(ValueError):
-        normal(None, 'test', jnp.array([0.]), jnp.array([1.]))
-
-    # Should fail because of wrong parameters
-    model = piper.create_graph()
-    with pytest.raises(TypeError):
-        normal(model, 'test2', 0., 1.)
-
-    # Should fail because of different shapes of mu and sigma
-    with pytest.raises(ValueError):
-        normal(model, 'test3', jnp.array([0., 0.]), jnp.array([1.]))
-
-
 def test_kl_normal_normal_one_dimensional():
     model = piper.create_graph()
     model = normal(model, 'n1', jnp.array([0.]), jnp.array([1.]))
@@ -73,14 +58,6 @@ def test_sample_normal():
                        out_axes=0)(keys, model)
 
     assert abs(jnp.mean(samples)) - 10. < 0.2
-
-
-def test_sample_normal_all_flexible_error():
-    # all params are flexible - not possible
-    with pytest.raises(ValueError):
-        model = piper.create_graph()
-        model = normal(model, 'n', param.flexible_param(jnp.array(0.0)),
-                       param.flexible_param(jnp.array(1.0)))
 
 
 def test_sample_normal_flexible_one_node():
@@ -142,14 +119,6 @@ def test_sample_conditioned():
                        out_axes=0)(keys, model)
 
     assert abs(jnp.mean(samples)) < 0.2
-
-
-def test_sample_conditioned_invalid_value_error():
-    model = piper.create_graph()
-    model = normal(model, 'n1', jnp.array([0.]), jnp.array([1.]))
-    model = normal(model, 'n2', 'n1', jnp.array([1.]))
-    with pytest.raises(ValueError):  # cannot condition n1 on int
-        model = func.condition(model, 'n1', jnp.array([0]))
 
 
 def test_sample_conditioned_posterior_error():

@@ -35,28 +35,11 @@ class Binomial(distribution.DistributionNode):
         self.n = param.to_param(n)
         self.p = param.to_param(p)
 
-        if isinstance(self.n, param.FlexibleParam) and \
-                isinstance(self.p, param.FlexibleParam):
-            raise ValueError('n and p cannot both be flexible')
-
-        if isinstance(self.n, param.ConstParam) and isinstance(
-                self.p, param.ConstParam):
-            if self.n.value.shape != self.p.value.shape:
-                raise ValueError('n and p need to have the same shape')
-
         if isinstance(self.n, param.DependentParam):
             self.dependencies.append(self.n.name)
-        else:
-            self.n.value = self.n.value.astype(jnp.int32)
-            if jnp.any(self.n.value < 0):
-                raise ValueError('n must be of type int32 and non-negative')
 
         if isinstance(self.p, param.DependentParam):
             self.dependencies.append(self.p.name)
-        else:
-            self.p.value = self.p.value.astype(jnp.float32)
-            if jnp.any(self.p.value < 0.) or jnp.any(self.p.value > 1.):
-                raise ValueError('p must be of type float32 and in [0, 1]')
 
         def sample_binomial(n, p, key):
             samples = jax.random.bernoulli(key, p, shape=(n, ))
@@ -77,13 +60,6 @@ class Binomial(distribution.DistributionNode):
         if n_sample.shape != p_sample.shape:
             raise RuntimeError("n and p need to be of same shape")
 
-        if n_sample.dtype != jnp.int32 or jnp.any(n_sample < 0):
-            raise TypeError('n needs to be jnp.int32 and non-negative')
-
-        if p_sample.dtype != jnp.float32 or jnp.any(p_sample > 1) or jnp.any(
-                p_sample < 0):
-            raise TypeError('p needs to be jnp.float32 and between 0 and 1')
-
         shape = n_sample.shape
         keys = jax.random.split(key, n_sample.size)
         n_sample = n_sample.reshape((n_sample.size))
@@ -96,21 +72,6 @@ class Binomial(distribution.DistributionNode):
 
     def log_prob(self, x: jnp.ndarray) -> jnp.ndarray:
         raise NotImplementedError
-
-    def _check_valid_condition(self, x: jnp.ndarray):
-        if x.dtype != jnp.int32 or jnp.any(x < 0):
-            return False
-
-        if isinstance(self.p, param.ConstParam) \
-                and x.shape != self.p.value.shape:
-            return False
-
-        if isinstance(self.n, param.ConstParam) \
-                and (x.shape != self.n.value.shape
-                     or jnp.any(x > self.n.value)):
-            return False
-
-        return True
 
 
 def binomial(model: graph.Graph, name: str, n: Union[str, jnp.ndarray],
@@ -146,12 +107,6 @@ def kl_binomial_binomial(dist1, dist2):
         if jnp.any(n1 != n2):
             raise ValueError('KL-divergence only defined for binomial \
                               distributions with same n')
-
-        if jnp.any(p1 == 0.0) or jnp.any(p1 == 1.0):
-            warnings.warn('KL-divergence will be nan', UserWarning)
-
-        if jnp.any(p2 == 0.0) or jnp.any(p2 == 1.0):
-            warnings.warn('KL-divergence will be inf', UserWarning)
 
         return jnp.log(p1 / p2) * n1 * p1 \
             + jnp.log((1. - p1) / (1. - p2)) \

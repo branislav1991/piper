@@ -37,12 +37,6 @@ class DistributionNode(graph.Node):
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
-    def _check_valid_condition(self, x: jnp.ndarray) -> bool:
-        """Checks if x is a valid output value for the distribution.
-        """
-        raise NotImplementedError
-
 
 def _get_samples(params: list, dependencies: dict) -> list:
     """Obtains samples from parameters of a node.
@@ -82,9 +76,6 @@ class ConditionedNode(graph.Node):
         super().__init__(node.name)
         if not isinstance(node, DistributionNode):
             raise ValueError("Conditioned node must be a DistributionNode")
-
-        if not node._check_valid_condition(value):
-            raise ValueError("Conditioned value invalid for given node")
 
         self.value = value
         self.dependencies = node.dependencies

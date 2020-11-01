@@ -9,25 +9,16 @@ from piper import param
 
 
 def test_create_const_param():
-    with pytest.raises(ValueError):
-        p = param.const_param("hi")
-
     p = param.const_param(jnp.array([[1, 10, 5], [2, 3, 1]]))
     assert isinstance(p, param.ConstParam)
 
 
 def test_create_dependent_param():
-    with pytest.raises(ValueError):
-        p = param.dependent_param(jnp.array([[1, 10, 5], [2, 3, 1]]))
-
     p = param.dependent_param("hi")
     assert isinstance(p, param.DependentParam)
 
 
 def test_create_flexible_param():
-    with pytest.raises(ValueError):
-        p = param.flexible_param("hi")
-
     with pytest.raises(ValueError):
         p = param.flexible_param(jnp.array([[1, 10, 5], [2, 3, 1]]))
 

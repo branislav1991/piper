@@ -15,8 +15,6 @@ class Node(abc.ABC):
 class ConstNode(Node):
     def __init__(self, name: str, value: jnp.ndarray):
         super().__init__(name)
-        if not isinstance(value, jnp.ndarray):
-            raise ValueError("ConstNode requires an ndarray as value")
 
         self.value = value
 
@@ -28,22 +26,14 @@ def const_node(name: str, value: jnp.ndarray):
 class Graph:
     def __init__(self):
         self.nodes = {}  # Nodes by name
-        self.node_inst = set()  # Set of Node instances
 
     def add(self, node: Node):
-        if not node or not isinstance(node, Node):
-            raise ValueError("Graph.add: Invalid node")
-
         if node.name in self.nodes:
             raise ValueError(
                 f"Cannot register multiple instances of '{node.name}' \
                              in the graph")
 
-        if node in self.node_inst:
-            raise ValueError("Cannot register multiple instances of same node")
-
         self.nodes[node.name] = node
-        self.node_inst.add(node)
 
         for dep in node.dependencies:
             if dep not in self.nodes:

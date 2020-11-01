@@ -16,9 +16,6 @@ class MockNode(graph.Node):
 def test_add_node():
     g = graph.create_graph()
 
-    with pytest.raises(ValueError):
-        g.add(None)
-
     n1 = MockNode("n1")
     n2 = MockNode("n1")
 
