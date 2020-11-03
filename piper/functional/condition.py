@@ -3,11 +3,10 @@
 
 import jax.numpy as jnp
 
-from piper import graph
-from piper.distributions import distribution
+from piper import core
 
 
-def condition(model: graph.Graph, node: str, val: jnp.ndarray) -> graph.Graph:
+def condition(model: core.Model, node: str, val: jnp.ndarray) -> core.Model:
     """Conditions a node on a variable.
 
     Args:
@@ -21,6 +20,6 @@ def condition(model: graph.Graph, node: str, val: jnp.ndarray) -> graph.Graph:
     if node not in model:
         raise ValueError('Conditioned node not in graph')
 
-    model = graph.replace_node(model, node,
-                               distribution.conditioned_node(model[node], val))
+    model = core.replace_node(model, node,
+                              core.conditioned_node(model[node], val))
     return model

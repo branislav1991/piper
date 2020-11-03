@@ -32,7 +32,7 @@ You may define a model in Piper by specifying a generating function like this:
         alpha0 = jnp.array(10.0)
         beta0 = jnp.array(10.0)
         
-        m = piper.create_model()
+        m = piper.create_forward_model()
         m = dist.beta(m, 'latent_fairness', alpha0, beta0)
         m = dist.bernoulli(m, 'obs', 'latent_fairness')
 
@@ -58,13 +58,13 @@ embedded in the model API and can be used like this:
     import piper.functional as func
     
     def model():
-        m = piper.create_model()
+        m = piper.create_forward_model()
         m = normal(m, 'n1', jnp.array([0., 0.]), jnp.array([1., 1.]))
         m = normal(m, 'n2', jnp.array([1., 1.]), jnp.array([1., 1.]))
         
         return m
 
-    kl_normal_normal = func.kl_divergence(model(), 'n1', 'n2') # returns 1.0
+    kl_normal_normal = func.compute_kl_div(model(), 'n1', 'n2') # returns 1.0
     
 ### Conditioning
     
@@ -73,7 +73,7 @@ Conditioning on Bayesian network variables is easy:
     import piper.functional as func
 
     def model():
-        m = piper.create_model()
+        m = piper.create_forward_model()
         m = normal(m, 'n1', jnp.array([0.]), jnp.array([1.]))
         m = normal(m, 'n2', 'n1', jnp.array([1.]))
         m = func.condition(m, 'n1', jnp.array([0.5]))
@@ -91,7 +91,7 @@ naive way will result in an exception:
     import piper.functional as func
 
     def model():
-        m = piper.create_model()
+        m = piper.create_forward_model()
         m = normal(m, 'n1', jnp.array([0.]), jnp.array([1.]))
         m = normal(m, 'n2', 'n1', jnp.array([1.]))
         m = func.condition(m, 'n2', jnp.array([0.5]))
@@ -105,7 +105,7 @@ In this case, you will need to rely on a sampling algorithm to obtain a sample f
 posterior. At the moment, piper supports only the Metropolis-Hastings algorithm:
 
     # With the model defined as above
-    proposal = piper.create_model()
+    proposal = piper.create_forward_model()
     proposal = normal(proposal, 'n1' jnp.array([0.]), jnp.array([1.]))
     model = func.metropolis_hastings(model(), proposal=proposal, burn_in_steps=500)
 

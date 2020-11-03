@@ -3,10 +3,11 @@
 
 import pytest
 
-from piper import graph
+import piper
+from piper import core
 
 
-class MockNode(graph.Node):
+class MockNode(core.Node):
     # Mock Node instantiation
     def __init__(self, name, dependencies=[]):
         super().__init__(name)
@@ -14,7 +15,7 @@ class MockNode(graph.Node):
 
 
 def test_add_node():
-    g = graph.create_graph()
+    g = piper.create_forward_model()
 
     n1 = MockNode("n1")
     n2 = MockNode("n1")
@@ -31,7 +32,7 @@ def test_add_node():
 
 
 def test_topological_sort():
-    g = graph.create_graph()
+    g = piper.create_forward_model()
     n1 = MockNode("n1")
     g.add(n1)
     n2 = MockNode("n2", ["n1"])

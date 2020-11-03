@@ -2,19 +2,17 @@
 # See the file LICENSE for copying permission.
 
 from typing import Union
-import warnings
 
 import jax
 import jax.random
 import jax.numpy as jnp
 
-from piper.distributions import distribution
 from piper.functional import kl_divergence
-from piper import graph
+from piper import core
 from piper import param
 
 
-class Binomial(distribution.DistributionNode):
+class Binomial(core.DistributionNode):
     def __init__(self, name: str, n: Union[str, jnp.ndarray],
                  p: Union[str, jnp.ndarray]):
         """Initializes a binomial distribution with n trials and probability p.
@@ -54,8 +52,7 @@ class Binomial(distribution.DistributionNode):
             dependencies: dict of dependencies.
             key: JAX random key.
         """
-        n_sample, p_sample = distribution._get_samples([self.n, self.p],
-                                                       dependencies)
+        n_sample, p_sample = core._get_samples([self.n, self.p], dependencies)
 
         if n_sample.shape != p_sample.shape:
             raise RuntimeError("n and p need to be of same shape")
@@ -74,7 +71,7 @@ class Binomial(distribution.DistributionNode):
         raise NotImplementedError
 
 
-def binomial(model: graph.Graph, name: str, n: Union[str, jnp.ndarray],
+def binomial(model: core.Model, name: str, n: Union[str, jnp.ndarray],
              p: Union[str, jnp.ndarray]):
     if not model:
         raise ValueError('model may not be None')
@@ -84,7 +81,7 @@ def binomial(model: graph.Graph, name: str, n: Union[str, jnp.ndarray],
     return model
 
 
-def bernoulli(model: graph.Graph, name: str, p: Union[str, jnp.ndarray]):
+def bernoulli(model: core.Model, name: str, p: Union[str, jnp.ndarray]):
     if not model:
         raise ValueError('model may not be None')
 

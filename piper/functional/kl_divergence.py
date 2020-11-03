@@ -1,7 +1,7 @@
 # Copyright (c) 2020 Branislav Holländer. All rights reserved.
 # See the file LICENSE for copying permission.
 
-from piper import graph
+from piper import core
 
 kl_registry = {}
 
@@ -14,7 +14,7 @@ def register_kl(dist1, dist2):
     return decorator
 
 
-def kl_divergence(model: graph.Graph, dist1: str, dist2: str):
+def compute_kl_div(model: core.Model, dist1: str, dist2: str):
     if dist1 not in model or dist2 not in model:
         raise ValueError(f"{dist1} or {dist2} not defined in model")
 

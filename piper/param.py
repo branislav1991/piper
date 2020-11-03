@@ -45,7 +45,7 @@ class FlexibleParam(Param):
     Conforms to other parameters as necessary.
 
     Example:
-        model = piper.create_graph()
+        model = piper.create_forward_model()
         model = normal(model, 'n', jnp.zeros((10, 10), dtype=jnp.float32),
                        param.FlexibleParam(jnp.ndarray(1.0)))
         # will expand sigma to (10, 10)

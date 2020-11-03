@@ -6,13 +6,12 @@ from typing import Union
 import jax.random
 import jax.numpy as jnp
 
-from piper.distributions import distribution
 from piper.functional import kl_divergence
-from piper import graph
+from piper import core
 from piper import param
 
 
-class Normal(distribution.DistributionNode):
+class Normal(core.DistributionNode):
     def __init__(self, name: str, mu: Union[str, jnp.ndarray, param.Param],
                  sigma: Union[str, jnp.ndarray, param.Param]):
         """Initializes a normal distribution with mean mu and standard deviation sigma.
@@ -44,7 +43,7 @@ class Normal(distribution.DistributionNode):
             dependencies: dict of dependencies.
             key: JAX random key.
         """
-        mu_sample, sigma_sample = distribution._get_samples(
+        mu_sample, sigma_sample = core._get_samples(
             [self.mu, self.sigma], dependencies)
 
         if mu_sample.shape != sigma_sample.shape:
@@ -60,7 +59,7 @@ class Normal(distribution.DistributionNode):
         raise NotImplementedError
 
 
-def normal(model: graph.Graph, name: str, mu: Union[str, jnp.ndarray],
+def normal(model: core.Model, name: str, mu: Union[str, jnp.ndarray],
            sigma: Union[str, jnp.ndarray]):
     if not model:
         raise ValueError('model may not be None')
