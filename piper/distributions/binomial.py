@@ -45,7 +45,7 @@ class Binomial(core.DistributionNode):
 
         self.sample_binomial = jax.jit(sample_binomial, static_argnums=0)
 
-    def sample(self, dependencies: dict, key: jnp.ndarray):
+    def sample(self, dependencies: dict, key: jnp.ndarray) -> jnp.ndarray:
         """Sample from the distribution.
 
         Args:

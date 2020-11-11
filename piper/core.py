@@ -115,6 +115,10 @@ class Model(abc.ABC):
     def can_sample(self) -> bool:
         raise NotImplementedError()
 
+    @abstractmethod
+    def sample(self) -> dict:
+        raise NotImplementedError()
+
     def add(self, node: Node):
         if node.name in self.nodes:
             raise ValueError(
@@ -133,7 +137,7 @@ class Model(abc.ABC):
     def __getitem__(self, key):
         return self.nodes[key]
 
-    def topological_sort(self) -> list:
+    def _topological_sort(self) -> list:
         """Return nodes topologically sorted based on their dependencies.
 
         Returns:
@@ -167,49 +171,17 @@ class Model(abc.ABC):
         return layers
 
 
-class SampledModel(Model):
-    def can_sample(self) -> bool:
-        return False  # cannot sample if already sampled
+def sample(model: Model, key: jnp.ndarray) -> dict:
+    """Samples all dists from the given model.
 
+    Args:
+        model: Model to sample from.
+        key: JAX PRNG key.
 
-def create_sampled_model() -> SampledModel:
-    return SampledModel()
-
-
-class ForwardModel(Model):
-    def can_sample(self) -> bool:
-        """Checks if you can apply forward sampling to the model.
-
-        Returns:
-            True if there is no conditioning on downstream nodes which have
-            non-conditioned and non-const dependencies (otherwise you have
-            to estimate posterior).
-            False otherwise.
-        """
-        visited = set()
-        queue = collections.deque()
-        for node in self.nodes.values():
-            if isinstance(node, ConditionedNode):
-                queue.append(node)
-
-        while queue:
-            node = queue.popleft()
-            if node in visited:
-                continue
-
-            visited.add(node)
-            if (not isinstance(node, ConditionedNode)) \
-                    and (not isinstance(node, ConstNode)):
-                return False
-
-            for d in node.dependencies:
-                queue.append(self.nodes[d])
-
-        return True
-
-
-def create_forward_model() -> ForwardModel:
-    return ForwardModel()
+    Returns:
+        Dictionary of sampled random variables.
+    """
+    return model.sample(key)
 
 
 def replace_node(model: Model, node_name: str, new_node: Node) -> Model:

@@ -8,12 +8,13 @@ import jax.numpy as jnp
 
 import piper
 import piper.functional as func
+import piper.models as models
 from piper.distributions import normal
 from piper import param
 
 
 def test_kl_normal_normal_one_dimensional():
-    model = piper.create_forward_model()
+    model = models.create_forward_model()
     model = normal(model, 'n1', jnp.array([0.]), jnp.array([1.]))
     model = normal(model, 'n2', jnp.array([0.]), jnp.array([1.]))
     model = normal(model, 'n3', jnp.array([1.]), jnp.array([1.]))
@@ -27,7 +28,7 @@ def test_kl_normal_normal_one_dimensional():
 
 
 def test_kl_normal_normal_multi_dimensional():
-    model = piper.create_forward_model()
+    model = models.create_forward_model()
     model = normal(model, 'n1', jnp.array([0., 0.]), jnp.array([1., 1.]))
     model = normal(model, 'n2', jnp.array([0., 0.]), jnp.array([1., 1.]))
     model = normal(model, 'n3', jnp.array([1., 1.]), jnp.array([1., 1.]))
@@ -39,21 +40,21 @@ def test_kl_normal_normal_multi_dimensional():
 
 
 def test_sample_normal():
-    model = piper.create_forward_model()
+    model = models.create_forward_model()
     model = normal(model, 'n', jnp.array([0.]), jnp.array([1.]))
 
     keys = jax.random.split(jax.random.PRNGKey(123), 500)
-    samples = jax.vmap(lambda k, m: func.sample(m, k)['n'].value,
+    samples = jax.vmap(lambda k, m: piper.sample(m, k)['n'],
                        in_axes=(0, None),
                        out_axes=0)(keys, model)
 
     assert abs(jnp.mean(samples)) < 0.2
 
-    model = piper.create_forward_model()
+    model = models.create_forward_model()
     model = normal(model, 'n', jnp.array([10.]), jnp.array([1.]))
 
     keys = jax.random.split(jax.random.PRNGKey(123), 500)
-    samples = jax.vmap(lambda k, m: func.sample(m, k)['n'].value,
+    samples = jax.vmap(lambda k, m: piper.sample(m, k)['n'],
                        in_axes=(0, None),
                        out_axes=0)(keys, model)
 
@@ -62,35 +63,35 @@ def test_sample_normal():
 
 def test_sample_normal_flexible_one_node():
     # test with one node
-    model = piper.create_forward_model()
+    model = models.create_forward_model()
     model = normal(model, 'n', jnp.zeros((10, 10), dtype=jnp.float32),
                    param.flexible_param(jnp.array(1.0)))
 
     key = jax.random.PRNGKey(123)
-    sample = func.sample(model, key)['n'].value
+    sample = piper.sample(model, key)['n']
     assert sample.shape == (10, 10)
 
 
 def test_sample_normal_flexible_joint():
     # test with joint model
-    model = piper.create_forward_model()
+    model = models.create_forward_model()
     model = normal(model, 'weight', jnp.zeros((10, 10), dtype=jnp.float32),
                    jnp.zeros((10, 10), dtype=jnp.float32))
     model = normal(model, 'measurement', 'weight',
                    param.flexible_param(jnp.array(1.0)))
 
     key = jax.random.PRNGKey(123)
-    sample = func.sample(model, key)['measurement'].value
+    sample = piper.sample(model, key)['measurement']
     assert sample.shape == (10, 10)
 
 
 def test_sample_joint_normal():
-    model = piper.create_forward_model()
+    model = models.create_forward_model()
     model = normal(model, 'weight', jnp.array([0.]), jnp.array([1.]))
     model = normal(model, 'measurement', 'weight', jnp.array([1.]))
 
     keys = jax.random.split(jax.random.PRNGKey(123), 500)
-    samples = jax.vmap(lambda k, m: func.sample(m, k)['measurement'].value,
+    samples = jax.vmap(lambda k, m: piper.sample(m, k)['measurement'],
                        in_axes=(0, None),
                        out_axes=0)(keys, model)
 
@@ -98,23 +99,23 @@ def test_sample_joint_normal():
 
 
 def test_incompatible_dimensions():
-    model = piper.create_forward_model()
+    model = models.create_forward_model()
     model = normal(model, 'weight', jnp.array([0., 0.]), jnp.array([1., 1.]))
     model = normal(model, 'measurement', 'weight', jnp.array([1.]))
 
     with pytest.raises(RuntimeError):
         key = jax.random.PRNGKey(123)
-        func.sample(model, key)
+        piper.sample(model, key)
 
 
 def test_sample_conditioned():
-    model = piper.create_forward_model()
+    model = models.create_forward_model()
     model = normal(model, 'weight', jnp.array([0.]), jnp.array([1.]))
     model = normal(model, 'measurement', 'weight', jnp.array([1.]))
     model = func.condition(model, 'weight', jnp.array([0.]))
 
     keys = jax.random.split(jax.random.PRNGKey(123), 500)
-    samples = jax.vmap(lambda k, m: func.sample(m, k)['measurement'].value,
+    samples = jax.vmap(lambda k, m: piper.sample(m, k)['measurement'],
                        in_axes=(0, None),
                        out_axes=0)(keys, model)
 
@@ -125,16 +126,16 @@ def test_sample_conditioned_posterior_error():
     """This test should return an error as direct sampling from
     posterior is not possible.
     """
-    model = piper.create_forward_model()
+    model = models.create_forward_model()
     model = normal(model, 'n1', jnp.array([0.]), jnp.array([1.]))
     model = normal(model, 'n2', 'n1', jnp.array([1.]))
     model = func.condition(model, 'n2', jnp.array([0.]))
 
     key = jax.random.PRNGKey(123)
     with pytest.raises(RuntimeError):
-        func.sample(model, key)
+        piper.sample(model, key)
 
-    model = piper.create_forward_model()
+    model = models.create_forward_model()
     model = normal(model, 'n1', jnp.array([0.]), jnp.array([1.]))
     model = normal(model, 'n2', 'n1', jnp.array([1.]))
     model = normal(model, 'n3', 'n2', jnp.array([1.]))
@@ -142,4 +143,4 @@ def test_sample_conditioned_posterior_error():
 
     key = jax.random.PRNGKey(123)
     with pytest.raises(RuntimeError):
-        func.sample(model, key)
+        piper.sample(model, key)

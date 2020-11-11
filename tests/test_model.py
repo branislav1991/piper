@@ -5,6 +5,7 @@ import pytest
 
 import piper
 from piper import core
+import piper.models as models
 
 
 class MockNode(core.Node):
@@ -15,7 +16,7 @@ class MockNode(core.Node):
 
 
 def test_add_node():
-    g = piper.create_forward_model()
+    g = models.create_forward_model()
 
     n1 = MockNode("n1")
     n2 = MockNode("n1")
@@ -32,7 +33,7 @@ def test_add_node():
 
 
 def test_topological_sort():
-    g = piper.create_forward_model()
+    g = models.create_forward_model()
     n1 = MockNode("n1")
     g.add(n1)
     n2 = MockNode("n2", ["n1"])
@@ -42,7 +43,7 @@ def test_topological_sort():
     n4 = MockNode("n4", ["n3"])
     g.add(n4)
 
-    layers = g.topological_sort()
+    layers = g._topological_sort()
     assert layers
     assert len(layers) == 3
     assert len(layers[0]) == 1

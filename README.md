@@ -23,16 +23,17 @@ Piper is written in pure Python. You may simply install piper from pip by runnin
 
 You may define a model in Piper by specifying a generating function like this:
 
+    import jax
     import jax.numpy as jnp
     import piper
-    import piper.functional as func
     import piper.distributions as dist
+    import piper.models as models
 
     def model():
         alpha0 = jnp.array(10.0)
         beta0 = jnp.array(10.0)
         
-        m = piper.create_forward_model()
+        m = models.create_forward_model()
         m = dist.beta(m, 'latent_fairness', alpha0, beta0)
         m = dist.bernoulli(m, 'obs', 'latent_fairness')
 
@@ -46,7 +47,7 @@ coin flip being heads ("obs") is given by a sample from the Beta distribution.
 After specifying the model, we can sample from it by calling
 
     key = jax.random.PRNGKey(123)
-    sample = func.sample(model(), key)['obs'].value
+    sample = piper.sample(model(), key)['obs']
     
 This will return a dictionary of sampled values.
 
@@ -58,13 +59,13 @@ embedded in the model API and can be used like this:
     import piper.functional as func
     
     def model():
-        m = piper.create_forward_model()
-        m = normal(m, 'n1', jnp.array([0., 0.]), jnp.array([1., 1.]))
-        m = normal(m, 'n2', jnp.array([1., 1.]), jnp.array([1., 1.]))
+        m = models.create_forward_model()
+        m = dist.normal(m, 'n1', jnp.array([0., 0.]), jnp.array([1., 1.]))
+        m = dist.normal(m, 'n2', jnp.array([1., 1.]), jnp.array([1., 1.]))
         
         return m
 
-    kl_normal_normal = func.compute_kl_div(model(), 'n1', 'n2') # returns 1.0
+    kl_normal_normal = func.compute_kl_div(model(), 'n1', 'n2') # returns [0.5, 0.5]
     
 ### Conditioning
     
@@ -73,9 +74,9 @@ Conditioning on Bayesian network variables is easy:
     import piper.functional as func
 
     def model():
-        m = piper.create_forward_model()
-        m = normal(m, 'n1', jnp.array([0.]), jnp.array([1.]))
-        m = normal(m, 'n2', 'n1', jnp.array([1.]))
+        m = models.create_forward_model()
+        m = dist.normal(m, 'n1', jnp.array([0.]), jnp.array([1.]))
+        m = dist.normal(m, 'n2', 'n1', jnp.array([1.]))
         m = func.condition(m, 'n1', jnp.array([0.5]))
         
         return m
@@ -88,31 +89,32 @@ If you condition on a variable further down the Bayesian network graph, you will
 effectively have to sample from the posterior distribution. Trying to do so in the
 naive way will result in an exception:
 
+    import piper
     import piper.functional as func
 
     def model():
-        m = piper.create_forward_model()
-        m = normal(m, 'n1', jnp.array([0.]), jnp.array([1.]))
-        m = normal(m, 'n2', 'n1', jnp.array([1.]))
+        m = models.create_forward_model()
+        m = dist.normal(m, 'n1', jnp.array([0.]), jnp.array([1.]))
+        m = dist.normal(m, 'n2', 'n1', jnp.array([1.]))
         m = func.condition(m, 'n2', jnp.array([0.5]))
         
         return m
         
     key = jax.random.PRNGKey(123)
-    sample = func.sample(model(), key)['n1'].value  # will throw a RuntimeError
+    sample = piper.sample(model(), key)['n1']  # will throw a RuntimeError
     
 In this case, you will need to rely on a sampling algorithm to obtain a sample from the
 posterior. At the moment, piper supports only the Metropolis-Hastings algorithm:
 
     # With the model defined as above
-    proposal = piper.create_forward_model()
+    proposal = models.create_forward_model()
     proposal = normal(proposal, 'n1' jnp.array([0.]), jnp.array([1.]))
     model = func.metropolis_hastings(model(), proposal=proposal, burn_in_steps=500)
 
     samples = []
     keys = jax.random.split(PRNGKey(123), 100)
     for i in range(100):  # generate 100 samples after burn-in
-        samples.append(func.sample(model, keys[i]))
+        samples.append(piper.sample(model, keys[i]))
         
 The model returned by *func.metropolis_hastings* will automatically be sampled by the Metropolis-Hastings sampler.
 
