@@ -46,7 +46,7 @@ class FlexibleParam(Param):
 
     Example:
         import piper.models as models
-        
+
         model = models.create_forward_model()
         model = normal(model, 'n', jnp.zeros((10, 10), dtype=jnp.float32),
                        param.FlexibleParam(jnp.ndarray(1.0)))

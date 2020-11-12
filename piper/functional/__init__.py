@@ -3,5 +3,6 @@
 
 from piper.functional.condition import condition
 from piper.functional.kl_divergence import compute_kl_div
+from piper.functional.mcmc import mcmc
 
-__all__ = ["compute_kl_div", "condition"]
+__all__ = ["compute_kl_div", "condition", "mcmc"]
