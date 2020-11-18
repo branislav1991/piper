@@ -114,9 +114,9 @@ posterior. At the moment, piper supports only the Metropolis-Hastings algorithm:
     mcmc_model = func.burnin(mcmc_model)
 
     samples = []
-    keys = jax.random.split(PRNGKey(123), 100)
+    keys = jax.random.split(jax.random.PRNGKey(123), 100)
     for i in range(100):  # generate 100 samples after burn-in
-        samples.append(piper.sample(model, keys[i]))
+        samples.append(piper.sample(mcmc_model, keys[i]))
         
 The model returned by *func.metropolis_hastings* will automatically be sampled by the Metropolis-Hastings sampler.
 

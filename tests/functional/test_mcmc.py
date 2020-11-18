@@ -1,25 +1,29 @@
 # Copyright (c) 2020 Branislav Holländer. All rights reserved.
 # See the file LICENSE for copying permission.
 
-import pytest
+import jax
+import jax.numpy as jnp
 
 import piper
-from piper import core
+import piper.functional as func
+import piper.distributions as dist
 import piper.models as models
 
 
 def test_mcmc():
-    g = models.create_forward_model()
+    m = models.create_forward_model()
+    m = dist.normal(m, 'n1', jnp.array([0.]), jnp.array([1.]))
+    m = dist.normal(m, 'n2', 'n1', jnp.array([1.]))
 
-    n1 = MockNode("n1")
-    n2 = MockNode("n1")
+    m = func.condition(m, 'n2', jnp.array([0.5]))
 
-    with pytest.raises(ValueError):
-        g.add(n1)
-        g.add(n2)
+    proposal = models.create_forward_model()
+    proposal = dist.normal(proposal, 'n1', jnp.array([0.]), jnp.array([1.]))
+    initial_params = {'n1': 0.}
+    mcmc_model = func.mcmc(m, proposal, initial_params, burnin_steps=500)
+    mcmc_model = func.burnin(mcmc_model)
 
-    n3 = MockNode("n3")
-
-    with pytest.raises(ValueError):
-        g.add(n3)
-        g.add(n3)
+    samples = []
+    keys = jax.random.split(jax.random.PRNGKey(123), 100)
+    for i in range(100):
+        samples.append(piper.sample(mcmc_model, keys[i]))

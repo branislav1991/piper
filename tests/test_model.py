@@ -3,7 +3,6 @@
 
 import pytest
 
-import piper
 from piper import core
 import piper.models as models
 
