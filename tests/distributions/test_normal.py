@@ -6,7 +6,6 @@ import pytest
 import jax
 import jax.numpy as jnp
 
-import piper
 import piper.functional as func
 import piper.models as models
 from piper.distributions import normal
@@ -44,7 +43,7 @@ def test_sample_normal():
     model = normal(model, 'n', jnp.array([0.]), jnp.array([1.]))
 
     keys = jax.random.split(jax.random.PRNGKey(123), 500)
-    samples = jax.vmap(lambda k, m: piper.sample(m, k)['n'],
+    samples = jax.vmap(lambda k, m: m.sample(k)['n'],
                        in_axes=(0, None),
                        out_axes=0)(keys, model)
 
@@ -54,7 +53,7 @@ def test_sample_normal():
     model = normal(model, 'n', jnp.array([10.]), jnp.array([1.]))
 
     keys = jax.random.split(jax.random.PRNGKey(123), 500)
-    samples = jax.vmap(lambda k, m: piper.sample(m, k)['n'],
+    samples = jax.vmap(lambda k, m: m.sample(k)['n'],
                        in_axes=(0, None),
                        out_axes=0)(keys, model)
 
@@ -68,7 +67,7 @@ def test_sample_normal_flexible_one_node():
                    param.flexible_param(jnp.array(1.0)))
 
     key = jax.random.PRNGKey(123)
-    sample = piper.sample(model, key)['n']
+    sample = model.sample(key)['n']
     assert sample.shape == (10, 10)
 
 
@@ -81,7 +80,7 @@ def test_sample_normal_flexible_joint():
                    param.flexible_param(jnp.array(1.0)))
 
     key = jax.random.PRNGKey(123)
-    sample = piper.sample(model, key)['measurement']
+    sample = model.sample(key)['measurement']
     assert sample.shape == (10, 10)
 
 
@@ -91,7 +90,7 @@ def test_sample_joint_normal():
     model = normal(model, 'measurement', 'weight', jnp.array([1.]))
 
     keys = jax.random.split(jax.random.PRNGKey(123), 500)
-    samples = jax.vmap(lambda k, m: piper.sample(m, k)['measurement'],
+    samples = jax.vmap(lambda k, m: m.sample(k)['measurement'],
                        in_axes=(0, None),
                        out_axes=0)(keys, model)
 
@@ -105,7 +104,7 @@ def test_incompatible_dimensions():
 
     with pytest.raises(RuntimeError):
         key = jax.random.PRNGKey(123)
-        piper.sample(model, key)
+        model.sample(key)
 
 
 def test_sample_conditioned():
@@ -115,7 +114,7 @@ def test_sample_conditioned():
     model = func.condition(model, 'weight', jnp.array([0.]))
 
     keys = jax.random.split(jax.random.PRNGKey(123), 500)
-    samples = jax.vmap(lambda k, m: piper.sample(m, k)['measurement'],
+    samples = jax.vmap(lambda k, m: m.sample(k)['measurement'],
                        in_axes=(0, None),
                        out_axes=0)(keys, model)
 
@@ -133,7 +132,7 @@ def test_sample_conditioned_posterior_error():
 
     key = jax.random.PRNGKey(123)
     with pytest.raises(RuntimeError):
-        piper.sample(model, key)
+        model.sample(key)
 
     model = models.create_forward_model()
     model = normal(model, 'n1', jnp.array([0.]), jnp.array([1.]))
@@ -143,4 +142,4 @@ def test_sample_conditioned_posterior_error():
 
     key = jax.random.PRNGKey(123)
     with pytest.raises(RuntimeError):
-        piper.sample(model, key)
+        model.sample(key)

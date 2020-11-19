@@ -6,7 +6,6 @@ import pytest
 import jax
 import jax.numpy as jnp
 
-import piper
 import piper.functional as func
 import piper.models as models
 from piper.distributions import binomial
@@ -19,7 +18,7 @@ def test_sample_bernoulli():
     model = bernoulli(model, 'n', jnp.array([0.5]))
 
     keys = jax.random.split(jax.random.PRNGKey(123), 500)
-    samples = jax.vmap(lambda k, m: piper.sample(m, k)['n'],
+    samples = jax.vmap(lambda k, m: m.sample(k)['n'],
                        in_axes=(0, None),
                        out_axes=0)(keys, model)
 
@@ -28,20 +27,20 @@ def test_sample_bernoulli():
     model = models.create_forward_model()
     model = bernoulli(model, 'n', jnp.array([0.]))
     key = jax.random.PRNGKey(123)
-    sample = piper.sample(model, key)['n']
+    sample = model.sample(key)['n']
     assert sample == 0
 
     model = models.create_forward_model()
     model = bernoulli(model, 'n', jnp.array([1.]))
     key = jax.random.PRNGKey(123)
-    sample = piper.sample(model, key)['n']
+    sample = model.sample(key)['n']
     assert sample == 1
 
     model = models.create_forward_model()
     model = bernoulli(model, 'n', jnp.full((10, 10), 0.5))
 
     keys = jax.random.split(jax.random.PRNGKey(123), 500)
-    samples = jax.vmap(lambda k, m: piper.sample(m, k)['n'],
+    samples = jax.vmap(lambda k, m: m.sample(k)['n'],
                        in_axes=(0, None),
                        out_axes=0)(keys, model)
 
@@ -54,7 +53,7 @@ def test_sample_binomial():
     model = binomial(model, 'n', jnp.array([2]), jnp.array([0.5]))
 
     keys = jax.random.split(jax.random.PRNGKey(123), 500)
-    samples = jax.vmap(lambda k, m: piper.sample(m, k)['n'],
+    samples = jax.vmap(lambda k, m: m.sample(k)['n'],
                        in_axes=(0, None),
                        out_axes=0)(keys, model)
 
@@ -63,20 +62,20 @@ def test_sample_binomial():
     model = models.create_forward_model()
     model = binomial(model, 'n', jnp.array([1]), jnp.array([0.]))
     key = jax.random.PRNGKey(123)
-    sample = piper.sample(model, key)['n']
+    sample = model.sample(key)['n']
     assert sample == 0
 
     model = models.create_forward_model()
     model = binomial(model, 'n', jnp.array([10]), jnp.array([1.]))
     key = jax.random.PRNGKey(123)
-    sample = piper.sample(model, key)['n']
+    sample = model.sample(key)['n']
     assert sample == 10
 
     model = models.create_forward_model()
     model = binomial(model, 'n', jnp.array([10]), jnp.array([0.5]))
 
     keys = jax.random.split(jax.random.PRNGKey(123), 500)
-    samples = jax.vmap(lambda k, m: piper.sample(m, k)['n'],
+    samples = jax.vmap(lambda k, m: m.sample(k)['n'],
                        in_axes=(0, None),
                        out_axes=0)(keys, model)
 
@@ -90,7 +89,7 @@ def test_sample_binomial_flexible_one_node():
                      param.flexible_param(jnp.array(1.0)))
 
     key = jax.random.PRNGKey(123)
-    sample = piper.sample(model, key)['n']
+    sample = model.sample(key)['n']
     assert sample.shape == (10, 10) and jnp.all(sample == 1)
 
 
@@ -132,7 +131,7 @@ def test_sample_conditioned():
     model = func.condition(model, 'n1', jnp.array([1]))
 
     keys = jax.random.split(jax.random.PRNGKey(123), 500)
-    samples = jax.vmap(lambda k, m: piper.sample(m, k)['n2'],
+    samples = jax.vmap(lambda k, m: m.sample(k)['n2'],
                        in_axes=(0, None),
                        out_axes=0)(keys, model)
 
@@ -147,7 +146,7 @@ def test_sample_conditioned_invalid_value_error():
 
     key = jax.random.PRNGKey(123)
     with pytest.raises(TypeError):  # cannot condition p on int
-        piper.sample(model, key)
+        model.sample(key)
 
 
 def test_sample_conditioned_posterior_error():
@@ -161,4 +160,4 @@ def test_sample_conditioned_posterior_error():
 
     key = jax.random.PRNGKey(123)
     with pytest.raises(RuntimeError):
-        piper.sample(model, key)
+        model.sample(key)

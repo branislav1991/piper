@@ -6,6 +6,7 @@ from abc import abstractmethod
 import collections
 
 import jax.numpy as jnp
+from jax.numpy.lax_numpy import isin
 
 from piper import param
 
@@ -119,6 +120,27 @@ class Model(abc.ABC):
     def sample(self) -> dict:
         raise NotImplementedError()
 
+    def log_prob(self, values: dict) -> jnp.array:
+        """Calculates log probability of entire model given values for all nodes.
+
+        Args:
+            values: Values for log probability calculation. Values for all
+                DistributionNodes need to be provided.
+
+        Returns:
+            Log probability of model.
+        """
+        logp = 0
+        for name, node in self.nodes.items():
+            if isinstance(node, DistributionNode):
+                if name not in values:
+                    raise ValueError(f'No value for node {name} provided')
+                logp += node.log_prob(values[name])
+            elif isinstance(node, ConditionedNode):
+                logp += node.log_prob()
+
+        return logp
+
     def add(self, node: Node):
         if node.name in self.nodes:
             raise ValueError(
@@ -169,19 +191,6 @@ class Model(abc.ABC):
             layers.append(new_layer)
 
         return layers
-
-
-def sample(model: Model, key: jnp.ndarray) -> dict:
-    """Samples all dists from the given model.
-
-    Args:
-        model: Model to sample from.
-        key: JAX PRNG key.
-
-    Returns:
-        Dictionary of sampled random variables.
-    """
-    return model.sample(key)
 
 
 def replace_node(model: Model, node_name: str, new_node: Node) -> Model:

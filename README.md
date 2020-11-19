@@ -25,7 +25,6 @@ You may define a model in Piper by specifying a generating function like this:
 
     import jax
     import jax.numpy as jnp
-    import piper
     import piper.distributions as dist
     import piper.models as models
 
@@ -47,7 +46,7 @@ coin flip being heads ("obs") is given by a sample from the Beta distribution.
 After specifying the model, we can sample from it by calling
 
     key = jax.random.PRNGKey(123)
-    sample = piper.sample(model(), key)['obs']
+    sample = model.sample(key)['obs']
     
 This will return a dictionary of sampled values.
 
@@ -89,7 +88,6 @@ If you condition on a variable further down the Bayesian network graph, you will
 effectively have to sample from the posterior distribution. Trying to do so in the
 naive way will result in an exception:
 
-    import piper
     import piper.functional as func
 
     def model():
@@ -101,7 +99,7 @@ naive way will result in an exception:
         return m
         
     key = jax.random.PRNGKey(123)
-    sample = piper.sample(model(), key)['n1']  # will throw a RuntimeError
+    sample = model.sample(key)['n1']  # will throw a RuntimeError
     
 In this case, you will need to rely on a sampling algorithm to obtain a sample from the
 posterior. At the moment, piper supports only the Metropolis-Hastings algorithm:
@@ -109,14 +107,13 @@ posterior. At the moment, piper supports only the Metropolis-Hastings algorithm:
     # With the model defined as above
     proposal = models.create_forward_model()
     proposal = normal(proposal, 'n1' jnp.array([0.]), jnp.array([1.]))
-    initial_params = {'n1': 0.}
-    mcmc_model = func.mcmc(model(), proposal, initial_params, burn_in_steps=500)
-    mcmc_model = func.burnin(mcmc_model)
+    initial_samples = {'n1': 0.}
+    mcmc_model = func.mcmc(model(), proposal, initial_samples, burn_in_steps=500)
 
     samples = []
     keys = jax.random.split(jax.random.PRNGKey(123), 100)
     for i in range(100):  # generate 100 samples after burn-in
-        samples.append(piper.sample(mcmc_model, keys[i]))
+        samples.append(mcmc_model.sample(keys[i]))
         
 The model returned by *func.metropolis_hastings* will automatically be sampled by the Metropolis-Hastings sampler.
 

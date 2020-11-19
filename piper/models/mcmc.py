@@ -1,17 +1,16 @@
 # Copyright (c) 2020 Branislav Holländer. All rights reserved.
 # See the file LICENSE for copying permission.
 
-from piper.models import forward
+import jax
 import jax.numpy as jnp
 
 from piper import core
+from piper.models import forward
 
 
 class MCMCModel(core.Model):
-    def __init__(self,
-                 model: forward.ForwardModel,
-                 proposal: forward.ForwardModel,
-                 initial_params: dict,
+    def __init__(self, model: forward.ForwardModel,
+                 proposal: forward.ForwardModel, initial_samples: dict,
                  burnin_steps: int):
         """Initializes the model from a ForwardModel.
 
@@ -28,17 +27,19 @@ class MCMCModel(core.Model):
 
         self.proposal = proposal
         self.burnin_steps = burnin_steps
-        self.initial_params = initial_params
-        self.ready_to_sample = False
+        self.initial_samples = initial_samples
+        self.current_samples = self.initial_samples
 
         self.burnin()
 
     def burnin(self):
-        self.ready_to_sample = True
+        keys = jax.random.split(jax.random.PRNGKey(123), self.burnin_steps)
+        for i in range(self.burnin_steps):
+            self.sample(keys[i])
 
     def add(self, node: core.Node):
-        super().add(node)
-        self.ready_to_sample = False
+        raise NotImplementedError(
+            "Please add nodes to ForwardModel and then apply functional.mcmc")
 
     def can_sample(self) -> bool:
         """Checks if you can apply MCMC sampling to the model.
@@ -57,31 +58,22 @@ class MCMCModel(core.Model):
         Returns:
             Dictionary of sampled random variables.
         """
-        if not self.ready_to_sample:
-            raise RuntimeError(
-                "Please perform burnin after creating the model or adding nodes"
-            )
-
         res = {}
 
-        layers = self._topological_sort()
-        for layer in layers:
-            for node in layer:
-                if isinstance(node, core.DistributionNode):
-                    injected_deps = {}
-                    for d in node.dependencies:
-                        if d not in res:
-                            raise RuntimeError("Invalid forward sampling on \
-                                non-const dependency")
+        proposed_samples = self.proposal.sample(key)
+        new_loglik = self.logp(proposed_samples) + self.proposal.logp(
+            proposed_samples)
+        old_loglik = self.logp(self.current_samples) + self.proposal.logp(
+            self.current_samples)
 
-                        injected_deps[d] = res[d]
+        if new_loglik > old_loglik:
+            res = proposed_samples
+        else:
+            u = jax.random.uniform(key)
+            if u < jnp.exp(new_loglik - old_loglik):
+                res = proposed_samples
+            else:
+                res = self.current_samples
 
-                    res[node.name] = node.sample(injected_deps, key)
-
-                elif isinstance(node, core.ConditionedNode):
-                    res[node.name] = node.value
-
-                else:
-                    raise TypeError("Unknown node type")
-
+        self.current_samples = res
         return res

@@ -20,8 +20,3 @@ def mcmc(model: forward.ForwardModel,
         New mode with ConditionedNode with the conditioned value.
     """
     return mcmcmodel.MCMCModel(model, proposal, initial_params, burnin_steps)
-
-
-def burnin(model: mcmcmodel.MCMCModel) -> mcmcmodel.MCMCModel:
-    model.burnin()
-    return model
