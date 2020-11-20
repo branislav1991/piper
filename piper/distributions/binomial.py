@@ -45,14 +45,14 @@ class Binomial(core.DistributionNode):
 
         self.sample_binomial = jax.jit(sample_binomial, static_argnums=0)
 
-    def sample(self, dependencies: dict, key: jnp.ndarray) -> jnp.ndarray:
+    def _sample(self, dependencies: dict, key: jnp.ndarray) -> jnp.ndarray:
         """Sample from the distribution.
 
         Args:
             dependencies: dict of dependencies.
             key: JAX random key.
         """
-        n_sample, p_sample = core._get_samples([self.n, self.p], dependencies)
+        n_sample, p_sample = self._get_samples([self.n, self.p], dependencies)
 
         if n_sample.shape != p_sample.shape:
             raise RuntimeError("n and p need to be of same shape")
@@ -67,7 +67,9 @@ class Binomial(core.DistributionNode):
 
         return jnp.stack(samp).reshape(shape)
 
-    def log_prob(self, x: jnp.ndarray) -> jnp.ndarray:
+    def _log_prob(self, x: jnp.ndarray, dependencies: dict) -> jnp.ndarray:
+        """Calculate log probability.
+        """
         raise NotImplementedError
 
 

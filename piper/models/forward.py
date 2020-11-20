@@ -21,7 +21,8 @@ class ForwardModel(core.Model):
         visited = set()
         queue = collections.deque()
         for node in self.nodes.values():
-            if isinstance(node, core.ConditionedNode):
+            if isinstance(node,
+                          core.DistributionNode) and node.is_conditioned():
                 queue.append(node)
 
         while queue:
@@ -30,8 +31,8 @@ class ForwardModel(core.Model):
                 continue
 
             visited.add(node)
-            if (not isinstance(node, core.ConditionedNode)) \
-                    and (not isinstance(node, core.ConstNode)):
+            if (isinstance(node, core.DistributionNode)
+                    and not node.is_conditioned()):
                 return False
 
             for d in node.dependencies:
@@ -58,19 +59,7 @@ class ForwardModel(core.Model):
         for layer in layers:
             for node in layer:
                 if isinstance(node, core.DistributionNode):
-                    injected_deps = {}
-                    for d in node.dependencies:
-                        if d not in res:
-                            raise RuntimeError("Invalid forward sampling on \
-                                non-const dependency")
-
-                        injected_deps[d] = res[d]
-
-                    res[node.name] = node.sample(injected_deps, key)
-
-                elif isinstance(node, core.ConditionedNode):
-                    res[node.name] = node.value
-
+                    res[node.name] = node.sample(res, key)
                 else:
                     raise TypeError("Unknown node type")
 

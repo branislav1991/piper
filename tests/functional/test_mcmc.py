@@ -21,14 +21,14 @@ def test_mcmc_wrong_proposal_or_initial_samples():
     proposal = models.create_forward_model()
     proposal = dist.normal(proposal, 'n3', jnp.array([0.]), jnp.array([1.]))
     initial_samples = {'n1': 0.}
-    with pytest.raises(ValueError):
+    with pytest.raises(KeyError):
         func.mcmc(m, proposal, initial_samples,
                   burnin_steps=500)  # incorrect proposal
 
     proposal = models.create_forward_model()
     proposal = dist.normal(proposal, 'n1', jnp.array([0.]), jnp.array([1.]))
     initial_samples = {'n3': 0.}
-    with pytest.raises(ValueError):
+    with pytest.raises(KeyError):
         func.mcmc(m, proposal, initial_samples,
                   burnin_steps=500)  # incorrect initial samples
 
@@ -41,11 +41,17 @@ def test_mcmc_normal_normal():
     m = func.condition(m, 'n2', jnp.array([0.5]))
 
     proposal = models.create_forward_model()
-    proposal = dist.normal(proposal, 'n1', jnp.array([0.]), jnp.array([1.]))
-    initial_samples = {'n1': 0.}
+    proposal = dist.normal(proposal, 'n1', jnp.array([0.]), jnp.array([10.]))
+    initial_samples = {'n1': jnp.array([0.])}
     mcmc_model = func.mcmc(m, proposal, initial_samples, burnin_steps=500)
 
     samples = []
     keys = jax.random.split(jax.random.PRNGKey(123), 100)
     for i in range(100):
         samples.append(mcmc_model.sample(keys[i]))
+
+    n1_samples = jnp.stack([i['n1'] for i in samples])
+    n2_samples = jnp.stack([i['n2'] for i in samples])
+
+    assert jnp.all(n2_samples == 0.5)
+    assert jnp.isclose(jnp.mean(n1_samples), 0.291035)

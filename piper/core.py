@@ -6,7 +6,6 @@ from abc import abstractmethod
 import collections
 
 import jax.numpy as jnp
-from jax.numpy.lax_numpy import isin
 
 from piper import param
 
@@ -29,10 +28,20 @@ def const_node(name: str, value: jnp.ndarray):
 
 
 class DistributionNode(Node):
+    """Parent class for all distributions.
+
+    Allows one to condition on the distribution.
+    """
     def __init__(self, name: str):
         super().__init__(name)
+        self._condition = None
 
-    @abc.abstractmethod
+    def is_conditioned(self) -> bool:
+        return self._condition is not None
+
+    def condition(self, val: jnp.ndarray):
+        self._condition = val
+
     def sample(self, dependencies: dict, key: jnp.ndarray):
         """Sample from the distribution.
 
@@ -40,10 +49,32 @@ class DistributionNode(Node):
             dependencies: dict of dependencies.
             key: JAX random key.
         """
-        raise NotImplementedError
+        if self.is_conditioned():
+            return self._condition
+
+        return self._sample(dependencies, key)
 
     @abc.abstractmethod
-    def log_prob(self, x: jnp.ndarray) -> jnp.ndarray:
+    def _sample(self, dependencies: dict, key: jnp.ndarray):
+        raise NotImplementedError
+
+    def log_prob(self, values: dict) -> jnp.ndarray:
+        """Returns log probability density for a value.
+
+        Accepts a single dict of values which includes the value
+        for this distribution (if it is not conditioned)
+        as well as for any dependencies.
+
+        Returns:
+            Log probability of x under the distribution.
+        """
+        if self.is_conditioned():
+            values[self.name] = self._condition
+
+        return self._log_prob(values[self.name], values)
+
+    @abc.abstractmethod
+    def _log_prob(self, x: jnp.ndarray, dependencies: dict) -> jnp.ndarray:
         """Returns log probability density for a value.
 
         Args:
@@ -55,52 +86,37 @@ class DistributionNode(Node):
         """
         raise NotImplementedError
 
+    def _get_samples(self, params: list, dependencies: dict) -> list:
+        """Obtains samples from parameters of a node.
 
-def _get_samples(params: list, dependencies: dict) -> list:
-    """Obtains samples from parameters of a node.
+        Requires that all parameters have the same shape but
+        does not check this requirement.
 
-    Requires that all parameters have the same shape but
-    does not check this requirement.
+        Returns:
+            List of samples in the order of params.
+        """
+        non_flex_samples = [
+            p.get(dependencies) for p in params
+            if not isinstance(p, param.FlexibleParam)
+        ]
 
-    Returns:
-        List of samples in the order of params.
-    """
-    non_flex_samples = [
-        p.get(dependencies) for p in params
-        if not isinstance(p, param.FlexibleParam)
-    ]
+        if not non_flex_samples:
+            raise ValueError("No unflexible params provided")
 
-    if not non_flex_samples:
-        raise ValueError("No unflexible params provided")
+        shape = non_flex_samples[0].shape
+        flex_param_samples = [
+            p.get(dependencies, shape=shape) for p in params
+            if isinstance(p, param.FlexibleParam)
+        ]
 
-    shape = non_flex_samples[0].shape
-    flex_param_samples = [
-        p.get(dependencies, shape=shape) for p in params
-        if isinstance(p, param.FlexibleParam)
-    ]
+        result = collections.deque()
+        for i in range(len(params) - 1, -1, -1):
+            if isinstance(params[i], param.FlexibleParam):
+                result.appendleft(flex_param_samples.pop())
+            else:
+                result.appendleft(non_flex_samples.pop())
 
-    result = collections.deque()
-    for i in range(len(params) - 1, -1, -1):
-        if isinstance(params[i], param.FlexibleParam):
-            result.appendleft(flex_param_samples.pop())
-        else:
-            result.appendleft(non_flex_samples.pop())
-
-    return result
-
-
-class ConditionedNode(Node):
-    def __init__(self, node: Node, value: jnp.ndarray):
-        super().__init__(node.name)
-        if not isinstance(node, DistributionNode):
-            raise ValueError("Conditioned node must be a DistributionNode")
-
-        self.value = value
-        self.dependencies = node.dependencies
-
-
-def conditioned_node(node: Node, value: jnp.ndarray):
-    return ConditionedNode(node, value)
+        return result
 
 
 class Model(abc.ABC):
@@ -133,11 +149,7 @@ class Model(abc.ABC):
         logp = 0
         for name, node in self.nodes.items():
             if isinstance(node, DistributionNode):
-                if name not in values:
-                    raise ValueError(f'No value for node {name} provided')
-                logp += node.log_prob(values[name])
-            elif isinstance(node, ConditionedNode):
-                logp += node.log_prob()
+                logp += node.log_prob(values)
 
         return logp
 
@@ -191,16 +203,3 @@ class Model(abc.ABC):
             layers.append(new_layer)
 
         return layers
-
-
-def replace_node(model: Model, node_name: str, new_node: Node) -> Model:
-    """Replaces a node in the graph by a new node.
-
-    Returns:
-        Model with replaced node.
-    """
-    if node_name not in model:
-        raise ValueError(f'Node {node_name} not in model')
-
-    model.nodes[node_name] = new_node
-    return model

@@ -143,3 +143,12 @@ def test_sample_conditioned_posterior_error():
     key = jax.random.PRNGKey(123)
     with pytest.raises(RuntimeError):
         model.sample(key)
+
+
+def test_log_prob():
+    model = models.create_forward_model()
+    model = normal(model, 'n1', jnp.array([0.]), jnp.array([1.]))
+    log_prob_mean = model.log_prob({'n1': jnp.array([0.])})
+    assert(jnp.isclose(log_prob_mean, -0.9189385))
+    log_prob_std = model.log_prob({'n1': jnp.array([1.])})
+    assert(jnp.isclose(log_prob_std, -1.4189385))

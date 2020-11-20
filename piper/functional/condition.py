@@ -15,11 +15,10 @@ def condition(model: core.Model, node: str, val: jnp.ndarray) -> core.Model:
         val: Value to condition with.
 
     Returns:
-        New mode with ConditionedNode with the conditioned value.
+        New model with the conditioned value.
     """
     if node not in model:
         raise ValueError('Conditioned node not in graph')
 
-    model = core.replace_node(model, node,
-                              core.conditioned_node(model[node], val))
+    model[node].condition(val)
     return model

@@ -12,7 +12,11 @@ class MCMCModel(core.Model):
     def __init__(self, model: forward.ForwardModel,
                  proposal: forward.ForwardModel, initial_samples: dict,
                  burnin_steps: int):
-        """Initializes the model from a ForwardModel.
+        """Initializes a MCMC model from a ForwardModel.
+
+        This model allows you to use the Metropolis-Hastings algorithm to sample
+        from a distribution conditioned on arbitrary nodes.
+        It is not modifiable and you cannot add new nodes to it.
 
         Args:
             model: ForwardModel to be sampled from.
@@ -61,9 +65,10 @@ class MCMCModel(core.Model):
         res = {}
 
         proposed_samples = self.proposal.sample(key)
-        new_loglik = self.logp(proposed_samples) + self.proposal.logp(
+        new_loglik = self.log_prob(proposed_samples) + self.proposal.log_prob(
             proposed_samples)
-        old_loglik = self.logp(self.current_samples) + self.proposal.logp(
+        old_loglik = self.log_prob(
+            self.current_samples) + self.proposal.log_prob(
             self.current_samples)
 
         if new_loglik > old_loglik:

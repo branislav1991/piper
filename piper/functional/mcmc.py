@@ -12,11 +12,13 @@ def mcmc(model: forward.ForwardModel,
     """Initializes an MCMC model from a forward model.
 
     Args:
-        model: Model to apply the conditioning to.
-        node: Node to condition on.
-        val: Value to condition with.
+        model: ForwardModel to be sampled from.
+        proposal: Proposal distribution.
+        initial_params: Dictionary of initial parameters. Should contain
+            all DistributionNodes in the model.
+        burnin_steps: Number of burn-in steps.
 
     Returns:
-        New mode with ConditionedNode with the conditioned value.
+        MCMC model.
     """
     return mcmcmodel.MCMCModel(model, proposal, initial_params, burnin_steps)
