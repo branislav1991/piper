@@ -1,7 +1,7 @@
 # Copyright (c) 2020 Branislav Holländer. All rights reserved.
 # See the file LICENSE for copying permission.
 
-from typing import Union
+from typing import Union, Dict
 import math
 
 import jax.random
@@ -37,11 +37,11 @@ class Normal(core.DistributionNode):
         if isinstance(self.sigma, param.DependentParam):
             self.dependencies.append(self.sigma.name)
 
-    def _sample(self, dependencies: dict, key: jnp.ndarray):
+    def _sample(self, dependencies: Dict, key: jnp.ndarray):
         """Sample from the distribution.
 
         Args:
-            dependencies: dict of dependencies.
+            dependencies: Dict of dependencies.
             key: JAX random key.
         """
         mu_sample, sigma_sample = self._get_samples([self.mu, self.sigma],
@@ -56,7 +56,7 @@ class Normal(core.DistributionNode):
 
         return std_norm * sigma_sample + mu_sample
 
-    def _log_prob(self, x: jnp.ndarray, dependencies: dict) -> jnp.ndarray:
+    def _log_prob(self, x: jnp.ndarray, dependencies: Dict) -> jnp.ndarray:
         mu_sample, sigma_sample = self._get_samples([self.mu, self.sigma],
                                                     dependencies)
 

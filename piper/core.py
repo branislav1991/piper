@@ -4,6 +4,7 @@
 import abc
 from abc import abstractmethod
 import collections
+from typing import Dict, List
 
 import jax.numpy as jnp
 
@@ -42,11 +43,11 @@ class DistributionNode(Node):
     def condition(self, val: jnp.ndarray):
         self._condition = val
 
-    def sample(self, dependencies: dict, key: jnp.ndarray):
+    def sample(self, dependencies: Dict, key: jnp.ndarray):
         """Sample from the distribution.
 
         Args:
-            dependencies: dict of dependencies.
+            dependencies: Dict of dependencies.
             key: JAX random key.
         """
         if self.is_conditioned():
@@ -55,13 +56,13 @@ class DistributionNode(Node):
         return self._sample(dependencies, key)
 
     @abc.abstractmethod
-    def _sample(self, dependencies: dict, key: jnp.ndarray):
+    def _sample(self, dependencies: Dict, key: jnp.ndarray):
         raise NotImplementedError
 
-    def log_prob(self, values: dict) -> jnp.ndarray:
+    def log_prob(self, values: Dict) -> jnp.ndarray:
         """Returns log probability density for a value.
 
-        Accepts a single dict of values which includes the value
+        Accepts a single Dict of values which includes the value
         for this distribution (if it is not conditioned)
         as well as for any dependencies.
 
@@ -74,7 +75,7 @@ class DistributionNode(Node):
         return self._log_prob(values[self.name], values)
 
     @abc.abstractmethod
-    def _log_prob(self, x: jnp.ndarray, dependencies: dict) -> jnp.ndarray:
+    def _log_prob(self, x: jnp.ndarray, dependencies: Dict) -> jnp.ndarray:
         """Returns log probability density for a value.
 
         Args:
@@ -86,7 +87,7 @@ class DistributionNode(Node):
         """
         raise NotImplementedError
 
-    def _get_samples(self, params: list, dependencies: dict) -> list:
+    def _get_samples(self, params: List, dependencies: Dict) -> List:
         """Obtains samples from parameters of a node.
 
         Requires that all parameters have the same shape but
@@ -133,10 +134,10 @@ class Model(abc.ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def sample(self) -> dict:
+    def sample(self) -> Dict:
         raise NotImplementedError()
 
-    def log_prob(self, values: dict) -> jnp.array:
+    def log_prob(self, values: Dict) -> jnp.array:
         """Calculates log probability of entire model given values for all nodes.
 
         Args:
@@ -171,7 +172,7 @@ class Model(abc.ABC):
     def __getitem__(self, key):
         return self.nodes[key]
 
-    def _topological_sort(self) -> list:
+    def _topological_sort(self) -> List:
         """Return nodes topologically sorted based on their dependencies.
 
         Returns:

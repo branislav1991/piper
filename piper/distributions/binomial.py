@@ -1,7 +1,7 @@
 # Copyright (c) 2020 Branislav Holländer. All rights reserved.
 # See the file LICENSE for copying permission.
 
-from typing import Union
+from typing import Union, Dict
 
 import jax
 import jax.random
@@ -45,11 +45,11 @@ class Binomial(core.DistributionNode):
 
         self.sample_binomial = jax.jit(sample_binomial, static_argnums=0)
 
-    def _sample(self, dependencies: dict, key: jnp.ndarray) -> jnp.ndarray:
+    def _sample(self, dependencies: Dict, key: jnp.ndarray) -> jnp.ndarray:
         """Sample from the distribution.
 
         Args:
-            dependencies: dict of dependencies.
+            dependencies: Dict of dependencies.
             key: JAX random key.
         """
         n_sample, p_sample = self._get_samples([self.n, self.p], dependencies)
@@ -67,7 +67,7 @@ class Binomial(core.DistributionNode):
 
         return jnp.stack(samp).reshape(shape)
 
-    def _log_prob(self, x: jnp.ndarray, dependencies: dict) -> jnp.ndarray:
+    def _log_prob(self, x: jnp.ndarray, dependencies: Dict) -> jnp.ndarray:
         """Calculate log probability.
         """
         raise NotImplementedError

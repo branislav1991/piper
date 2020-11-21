@@ -2,14 +2,14 @@
 # See the file LICENSE for copying permission.
 
 import abc
-from typing import Union
+from typing import Union, Dict
 
 import jax.numpy as jnp
 
 
 class Param(abc.ABC):
     @abc.abstractmethod
-    def get(self, dependencies: dict, **kwargs):
+    def get(self, dependencies: Dict, **kwargs):
         raise NotImplementedError()
 
 
@@ -17,7 +17,7 @@ class ConstParam(Param):
     def __init__(self, value: jnp.ndarray):
         self.value = value
 
-    def get(self, dependencies: dict, **kwargs):
+    def get(self, dependencies: Dict, **kwargs):
         return self.value
 
 
@@ -29,7 +29,7 @@ class DependentParam(Param):
     def __init__(self, name: str):
         self.name = name
 
-    def get(self, dependencies: dict, **kwargs):
+    def get(self, dependencies: Dict, **kwargs):
         if self.name not in dependencies:
             raise ValueError("Dependent value not provided")
         return dependencies[self.name]
@@ -59,7 +59,7 @@ class FlexibleParam(Param):
 
         self.value = value
 
-    def get(self, dependencies: dict, **kwargs):
+    def get(self, dependencies: Dict, **kwargs):
         if 'shape' not in kwargs:
             raise ValueError("shape not provided")
 

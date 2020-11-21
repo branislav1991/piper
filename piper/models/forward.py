@@ -2,6 +2,7 @@
 # See the file LICENSE for copying permission.
 
 import collections
+from typing import Dict
 
 import jax.numpy as jnp
 
@@ -40,7 +41,7 @@ class ForwardModel(core.Model):
 
         return True
 
-    def sample(self, key: jnp.ndarray) -> dict:
+    def sample(self, key: jnp.ndarray) -> Dict:
         """Samples from the model.
 
         Args:

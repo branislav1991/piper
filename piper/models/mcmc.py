@@ -1,6 +1,8 @@
 # Copyright (c) 2020 Branislav Holländer. All rights reserved.
 # See the file LICENSE for copying permission.
 
+from typing import List, Dict
+
 import jax
 import jax.numpy as jnp
 
@@ -10,8 +12,8 @@ from piper.models import forward
 
 class MCMCModel(core.Model):
     def __init__(self, model: forward.ForwardModel,
-                 proposal: forward.ForwardModel, initial_samples: dict,
-                 burnin_steps: int):
+                 proposal: forward.ForwardModel, initial_samples: Dict,
+                 burnin_steps: int, num_chains: int):
         """Initializes a MCMC model from a ForwardModel.
 
         This model allows you to use the Metropolis-Hastings algorithm to sample
@@ -20,10 +22,11 @@ class MCMCModel(core.Model):
 
         Args:
             model: ForwardModel to be sampled from.
-            proposal: Proposal distribution.
-            initial_params: Dictionary of initial parameters. Should contain
-                all DistributionNodes in the model.
+            proposal: Proposal distribution. This should output samples for all chains.
+            initial_samples: Dictionary of initial parameters for all chains.
+                Should contain all DistributionNodes in the model.
             burnin_steps: Number of burn-in steps.
+            num_chains: Number of chains to run in parallel.
         """
         super().__init__()
 
@@ -33,6 +36,7 @@ class MCMCModel(core.Model):
         self.burnin_steps = burnin_steps
         self.initial_samples = initial_samples
         self.current_samples = self.initial_samples
+        self.num_chains = num_chains
 
         self.burnin()
 
@@ -53,7 +57,8 @@ class MCMCModel(core.Model):
         """
         return True
 
-    def sample(self, key: jnp.ndarray) -> dict:
+    @jax.jit
+    def sample(self, key: jnp.ndarray) -> Dict:
         """Samples from the model.
 
         Args:
@@ -62,23 +67,18 @@ class MCMCModel(core.Model):
         Returns:
             Dictionary of sampled random variables.
         """
-        res = {}
-
         proposed_samples = self.proposal.sample(key)
+        res = proposed_samples
+
         new_loglik = self.log_prob(proposed_samples) + self.proposal.log_prob(
             proposed_samples)
         old_loglik = self.log_prob(
             self.current_samples) + self.proposal.log_prob(
             self.current_samples)
 
-        if new_loglik > old_loglik:
-            res = proposed_samples
-        else:
-            u = jax.random.uniform(key)
-            if u < jnp.exp(new_loglik - old_loglik):
-                res = proposed_samples
-            else:
-                res = self.current_samples
+        u = jax.random.uniform(key, shape=(self.num_chains,))
+        for name, val in res.items():
+            val[jax.logical_and(new_loglik < old_loglik, u >= jnp.exp(new_loglik - old_loglik))] = self.current_samples[name]
 
         self.current_samples = res
         return res
