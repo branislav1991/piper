@@ -82,7 +82,7 @@ Conditioning on Bayesian network variables is easy:
         
 You may now sample from the conditional distribution.
 
-### MCMC
+### Metropolis-Hastings
 
 If you condition on a variable further down the Bayesian network graph, you will
 effectively have to sample from the posterior distribution. Trying to do so in the
@@ -107,14 +107,15 @@ posterior. At the moment, piper supports only the Metropolis-Hastings algorithm:
     # With the model defined as above
     proposal = models.create_forward_model()
     proposal = normal(proposal, 'n1' jnp.array([0.]), jnp.array([1.]))
-    initial_samples = {'n1': 0.}
-    mcmc_model = func.mcmc(model(), proposal, initial_samples, burn_in_steps=500)
+    initial_samples = {'n1': jnp.array([0.])}
+    mcmc_model = func.mcmc(model(), proposal, initial_samples, burn_in_steps=500, num_chains=1)
 
     samples = []
     keys = jax.random.split(jax.random.PRNGKey(123), 100)
     for i in range(100):  # generate 100 samples after burn-in
         samples.append(mcmc_model.sample(keys[i]))
         
-The model returned by *func.metropolis_hastings* will automatically be sampled by the Metropolis-Hastings sampler.
+The model returned by *func.mcmc* will automatically be sampled by the Metropolis-Hastings sampler. Note that using multiple chains will be
+automatically parallelized by piper.
 
 [JAX]: https://github.com/google/jax
