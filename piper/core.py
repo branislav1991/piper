@@ -4,6 +4,7 @@
 import abc
 from abc import abstractmethod
 import collections
+import copy
 from typing import Dict, List
 
 import jax.numpy as jnp
@@ -69,10 +70,11 @@ class DistributionNode(Node):
         Returns:
             Log probability of x under the distribution.
         """
+        values_ = copy.copy(values)
         if self.is_conditioned():
-            values[self.name] = self._condition
+            values_[self.name] = self._condition
 
-        return self._log_prob(values[self.name], values)
+        return self._log_prob(values_[self.name], values_)
 
     @abc.abstractmethod
     def _log_prob(self, x: jnp.ndarray, dependencies: Dict) -> jnp.ndarray:

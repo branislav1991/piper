@@ -16,7 +16,8 @@ def mcmc(model: forward.ForwardModel,
 
     Args:
         model: ForwardModel to be sampled from.
-        proposal: Proposal distribution. This should output samples for all chains.
+        proposal: Proposal distribution. This should output samples for all
+            chains.
         initial_samples: Dictionary of initial parameters for all chains.
             Should contain all DistributionNodes in the model.
         burnin_steps: Number of burn-in steps.
@@ -25,4 +26,5 @@ def mcmc(model: forward.ForwardModel,
     Returns:
         MCMC model.
     """
-    return mcmcmodel.MCMCModel(model, proposal, initial_samples, burnin_steps, num_chains)
+    return mcmcmodel.MCMCModel(model, proposal, initial_samples, burnin_steps,
+                               num_chains)

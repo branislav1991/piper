@@ -70,7 +70,11 @@ class Binomial(core.DistributionNode):
     def _log_prob(self, x: jnp.ndarray, dependencies: Dict) -> jnp.ndarray:
         """Calculate log probability.
         """
-        raise NotImplementedError
+        n_sample, p_sample = self._get_samples([self.n, self.p], dependencies)
+        if n_sample.shape != p_sample.shape:
+            raise RuntimeError("n and p need to be of same shape")
+
+        return x * jnp.log(p_sample) + (n_sample - x) * jnp.log(1 - p_sample)
 
 
 def binomial(model: core.Model, name: str, n: Union[str, jnp.ndarray],
