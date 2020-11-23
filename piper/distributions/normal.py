@@ -6,6 +6,7 @@ import math
 
 import jax.random
 import jax.numpy as jnp
+import jax.scipy.stats.norm as jax_norm
 
 from piper.functional import kl_divergence
 from piper import core
@@ -60,8 +61,7 @@ class Normal(core.DistributionNode):
         mu_sample, sigma_sample = self._get_samples([self.mu, self.sigma],
                                                     dependencies)
 
-        return (-jnp.log(sigma_sample) - 0.5 * jnp.log(2 * math.pi) - 0.5
-                * ((x - mu_sample) / sigma_sample)**2)
+        return jax_norm.logpdf(x, mu_sample, sigma_sample)
 
 
 def normal(model: core.Model, name: str, mu: Union[str, jnp.ndarray],
@@ -75,7 +75,7 @@ def normal(model: core.Model, name: str, mu: Union[str, jnp.ndarray],
 
 
 @kl_divergence.register_kl(Normal, Normal)
-def kl_normal_normal(dist1, dist2):
+def kl_normal_normal(dist1: Normal, dist2: Normal):
     if isinstance(dist1.mu, param.ConstParam) and isinstance(
             dist2.mu, param.ConstParam):
 

@@ -22,14 +22,14 @@ def test_mcmc_wrong_proposal_or_initial_samples():
     proposal = dist.normal(proposal, 'n3', jnp.array([0.]), jnp.array([1.]))
     initial_samples = {'n1': 0.}
     with pytest.raises(KeyError):
-        func.mcmc(m, proposal, initial_samples, burnin_steps=500,
+        func.mcmc(m, proposal, initial_samples, burnin_steps=100,
                   num_chains=1)  # incorrect proposal
 
     proposal = models.create_forward_model()
     proposal = dist.normal(proposal, 'n1', jnp.array([0.]), jnp.array([1.]))
     initial_samples = {'n3': 0.}
     with pytest.raises(KeyError):
-        func.mcmc(m, proposal, initial_samples, burnin_steps=500,
+        func.mcmc(m, proposal, initial_samples, burnin_steps=100,
                   num_chains=1)  # incorrect initial samples
 
 
@@ -110,4 +110,33 @@ def test_mcmc_normal_normal_multidim_10_chains():
         samples.append(mcmc_model.sample(keys[i]))
 
     n1_samples = jnp.stack([i['n1'] for i in samples]).reshape((-1, 2, 2))
-    assert jnp.allclose(jnp.mean(n1_samples, 0), jnp.array([[0.12954064, 0.06247671], [0.47244635, 0.4246871]]))
+    assert jnp.allclose(
+        jnp.mean(n1_samples, 0),
+        jnp.array([[0.12954137, 0.06247745], [0.47244704, 0.42468783]]))
+
+
+def test_mcmc_beta_bernoulli_10chains():
+    m = models.create_forward_model()
+    m = dist.beta(m, 'n1', jnp.array([0.5]), jnp.array([0.5]))
+    m = dist.bernoulli(m, 'n2', 'n1')
+
+    m = func.condition(m, 'n2', jnp.array([0.9]))
+
+    proposal = models.create_forward_model()
+    proposal = dist.beta(proposal, 'n1', jnp.full((10, ), 0.5),
+                         jnp.full((10, ), 0.5))
+
+    initial_samples = {'n1': jnp.full((10, ), 0.5)}
+    mcmc_model = func.mcmc(m,
+                           proposal,
+                           initial_samples,
+                           burnin_steps=100,
+                           num_chains=10)
+
+    samples = []
+    keys = jax.random.split(jax.random.PRNGKey(123), 100)
+    for i in range(100):
+        samples.append(mcmc_model.sample(keys[i]))
+
+    n1_samples = jnp.stack([i['n1'] for i in samples]).reshape((-1, ))
+    assert jnp.isclose(jnp.mean(n1_samples), 0.9974573)

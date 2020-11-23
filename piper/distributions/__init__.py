@@ -4,5 +4,6 @@
 from piper.distributions.normal import normal
 from piper.distributions.binomial import binomial
 from piper.distributions.binomial import bernoulli
+from piper.distributions.beta import beta
 
-__all__ = ["normal", "binomial", "bernoulli"]
+__all__ = ["normal", "binomial", "bernoulli", "beta"]

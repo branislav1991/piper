@@ -10,7 +10,7 @@ from piper.models import mcmc as mcmcmodel
 def mcmc(model: forward.ForwardModel,
          proposal: forward.ForwardModel,
          initial_samples: List[Dict],
-         burnin_steps: int = 500,
+         burnin_steps: int = 100,
          num_chains: int = 10) -> mcmcmodel.MCMCModel:
     """Initializes an MCMC model from a forward model.
 

@@ -98,7 +98,7 @@ def bernoulli(model: core.Model, name: str, p: Union[str, jnp.ndarray]):
 
 
 @kl_divergence.register_kl(Binomial, Binomial)
-def kl_binomial_binomial(dist1, dist2):
+def kl_binomial_binomial(dist1: Binomial, dist2: Binomial):
     if isinstance(dist1.n, param.ConstParam) and isinstance(
             dist2.n, param.ConstParam):
 

@@ -42,7 +42,7 @@ def test_sample_normal():
     model = models.create_forward_model()
     model = normal(model, 'n', jnp.array([0.]), jnp.array([1.]))
 
-    keys = jax.random.split(jax.random.PRNGKey(123), 500)
+    keys = jax.random.split(jax.random.PRNGKey(123), 100)
     samples = jax.vmap(lambda k, m: m.sample(k)['n'],
                        in_axes=(0, None),
                        out_axes=0)(keys, model)
@@ -52,7 +52,7 @@ def test_sample_normal():
     model = models.create_forward_model()
     model = normal(model, 'n', jnp.array([10.]), jnp.array([1.]))
 
-    keys = jax.random.split(jax.random.PRNGKey(123), 500)
+    keys = jax.random.split(jax.random.PRNGKey(123), 100)
     samples = jax.vmap(lambda k, m: m.sample(k)['n'],
                        in_axes=(0, None),
                        out_axes=0)(keys, model)
@@ -89,7 +89,7 @@ def test_sample_joint_normal():
     model = normal(model, 'weight', jnp.array([0.]), jnp.array([1.]))
     model = normal(model, 'measurement', 'weight', jnp.array([1.]))
 
-    keys = jax.random.split(jax.random.PRNGKey(123), 500)
+    keys = jax.random.split(jax.random.PRNGKey(123), 100)
     samples = jax.vmap(lambda k, m: m.sample(k)['measurement'],
                        in_axes=(0, None),
                        out_axes=0)(keys, model)
@@ -113,7 +113,7 @@ def test_sample_conditioned():
     model = normal(model, 'measurement', 'weight', jnp.array([1.]))
     model = func.condition(model, 'weight', jnp.array([0.]))
 
-    keys = jax.random.split(jax.random.PRNGKey(123), 500)
+    keys = jax.random.split(jax.random.PRNGKey(123), 100)
     samples = jax.vmap(lambda k, m: m.sample(k)['measurement'],
                        in_axes=(0, None),
                        out_axes=0)(keys, model)
@@ -145,7 +145,7 @@ def test_sample_conditioned_posterior_error():
         model.sample(key)
 
 
-def test_log_prob():
+def test_log_prob_normal():
     model = models.create_forward_model()
     model = normal(model, 'n1', jnp.array([0.]), jnp.array([1.]))
     log_prob_mean = model.log_prob({'n1': jnp.array([0.])})
