@@ -11,6 +11,7 @@ import jax.scipy.stats.norm as jax_norm
 from piper.functional import kl_divergence
 from piper import core
 from piper import param
+from piper import utils
 
 
 class Normal(core.DistributionNode):
@@ -37,6 +38,9 @@ class Normal(core.DistributionNode):
 
         if isinstance(self.sigma, param.DependentParam):
             self.dependencies.append(self.sigma.name)
+
+    def _can_condition(self, val: jnp.ndarray):
+        return utils.is_floating(val)
 
     def _sample(self, dependencies: Dict, key: jnp.ndarray):
         """Sample from the distribution.

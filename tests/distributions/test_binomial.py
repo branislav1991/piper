@@ -143,6 +143,9 @@ def test_sample_conditioned_invalid_value_error():
     model = models.create_forward_model()
     model = bernoulli(model, 'n1', jnp.array([0.5]))
     model = binomial(model, 'n2', jnp.array([1]), 'n1')
+    with pytest.raises(ValueError):  # cannot condition n1 on a float
+        model = func.condition(model, 'n1', jnp.array(0.5))
+
     model = func.condition(model, 'n1', jnp.array([1]))
 
     key = jax.random.PRNGKey(123)

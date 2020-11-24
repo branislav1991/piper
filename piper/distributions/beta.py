@@ -12,6 +12,7 @@ import jax.scipy.special as jax_special
 from piper.functional import kl_divergence
 from piper import core
 from piper import param
+from piper import utils
 
 
 class Beta(core.DistributionNode):
@@ -25,7 +26,8 @@ class Beta(core.DistributionNode):
         Args:
             alpha: This can be either a named entity
                 specified in the model or a JAX ndarray. If a JAX ndarray
-                is provided, it has to be of type float32 and non-negative.
+                is provided, it has to be a floating-point type and
+                non-negative.
             beta: If a JAX ndarray is provided, it must have the same
                 shape and type as alpha and be non-negative.
         """
@@ -39,6 +41,10 @@ class Beta(core.DistributionNode):
 
         if isinstance(self.beta, param.DependentParam):
             self.dependencies.append(self.beta.name)
+
+    def _can_condition(self, val: jnp.ndarray):
+        return utils.is_floating(val) and jnp.all(0 <= val) \
+            and jnp.all(val <= 1)
 
     def _sample(self, dependencies: Dict, key: jnp.ndarray) -> jnp.ndarray:
         """Sample from the distribution.

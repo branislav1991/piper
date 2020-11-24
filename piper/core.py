@@ -2,7 +2,6 @@
 # See the file LICENSE for copying permission.
 
 import abc
-from abc import abstractmethod
 import collections
 import copy
 from typing import Dict, List
@@ -37,7 +36,14 @@ class DistributionNode(Node):
     def is_conditioned(self) -> bool:
         return self._condition is not None
 
+    @abc.abstractmethod
+    def _can_condition(self, val: jnp.ndarray):
+        raise NotImplementedError
+
     def condition(self, val: jnp.ndarray):
+        if not self._can_condition(val):
+            raise ValueError('Cannot condition distribution on this value')
+
         self._condition = val
 
     def sample(self, dependencies: Dict, key: jnp.ndarray):
@@ -127,11 +133,11 @@ class Model(abc.ABC):
     def __init__(self):
         self.nodes = {}  # Nodes by name
 
-    @abstractmethod
+    @abc.abstractmethod
     def can_sample(self) -> bool:
         raise NotImplementedError()
 
-    @abstractmethod
+    @abc.abstractmethod
     def sample(self, key: jnp.ndarray) -> Dict:
         raise NotImplementedError()
 

@@ -10,6 +10,7 @@ import jax.numpy as jnp
 from piper.functional import kl_divergence
 from piper import core
 from piper import param
+from piper import utils
 
 
 class Binomial(core.DistributionNode):
@@ -44,6 +45,9 @@ class Binomial(core.DistributionNode):
             return jnp.sum(samples)
 
         self.sample_binomial = jax.jit(sample_binomial, static_argnums=0)
+
+    def _can_condition(self, val: jnp.ndarray):
+        return utils.is_integer(val)
 
     def _sample(self, dependencies: Dict, key: jnp.ndarray) -> jnp.ndarray:
         """Sample from the distribution.
