@@ -9,7 +9,7 @@
 
 ## Overview
 
-Piper is a probabilistic programming library supporting variational and sampling inference. Piper is build on [JAX], a numerical computing library that combines NumPy, automatic differentation and GPU/TPU support. For now, Piper only supports sampling from custom models defined by the user. In the future, support for SVI as well as MCMC methods is planned.
+Piper is a probabilistic programming library supporting variational and sampling inference. Piper is build on [JAX], a numerical computing library that combines NumPy, automatic differentation and GPU/TPU support. For now, Piper supports forward sampling from custom models defined by the user as well as the Metropolis-Hastings method. In the future, support for Hamiltonian Monte Carlo as well as SVI is planned.
 
 ## Installation
 
@@ -89,6 +89,7 @@ effectively have to sample from the posterior distribution. Trying to do so in t
 naive way will result in an exception:
 
     import piper.functional as func
+    from piper import core
 
     def model():
         m = models.create_forward_model()
@@ -106,16 +107,23 @@ posterior. At the moment, piper supports only the Metropolis-Hastings algorithm:
 
     # With the model defined as above
     proposal = models.create_forward_model()
+    proposal = core.const_node(proposal, 'n3', jnp.array([0.]))
     proposal = normal(proposal, 'n1' jnp.array([0.]), jnp.array([1.]))
+    proposal = func.proposal(proposal, 'n3')
+    
     initial_samples = {'n1': jnp.array([0.])}
-    mcmc_model = func.mcmc(model(), proposal, initial_samples, burn_in_steps=500, num_chains=1)
+    metropolis_hastings_model = func.metropolis_hastings(model(), proposal, initial_samples, burn_in_steps=500, num_chains=1)
 
     samples = []
     keys = jax.random.split(jax.random.PRNGKey(123), 100)
     for i in range(100):  # generate 100 samples after burn-in
-        samples.append(mcmc_model.sample(keys[i]))
+        samples.append(metropolis_hastings_model.sample(keys[i]))
         
-The model returned by *func.mcmc* will automatically be sampled by the Metropolis-Hastings sampler. Note that using multiple chains will be
+First we create a proposal distribution to propose samples for us. This is done using *func.proposal*. As the proposal proposes
+new samples like *P(x'|x)*, we need to specify which node will be used as *x* for conditioning. This is done using the second
+parameter of *func.proposal*.
+
+The model returned by *func.metropolis_hastings* will automatically be sampled by the Metropolis-Hastings sampler. Note that using multiple chains will be
 automatically parallelized by piper.
 
 [JAX]: https://github.com/google/jax

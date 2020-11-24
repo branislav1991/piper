@@ -2,7 +2,6 @@
 # See the file LICENSE for copying permission.
 
 from piper.distributions.binomial import bernoulli
-import pytest
 
 import jax
 import jax.numpy as jnp

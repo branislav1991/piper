@@ -44,7 +44,8 @@ def test_sample_bernoulli():
                        in_axes=(0, None),
                        out_axes=0)(keys, model)
 
-    assert jnp.allclose(jnp.mean(samples, axis=0), jnp.array([[0.45999998, 0.55], [0.57, 0.48]]))
+    assert jnp.allclose(jnp.mean(samples, axis=0),
+                        jnp.array([[0.45999998, 0.55], [0.57, 0.48]]))
 
 
 def test_sample_binomial():

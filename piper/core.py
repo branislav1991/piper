@@ -25,10 +25,6 @@ class ConstNode(Node):
         self.value = value
 
 
-def const_node(name: str, value: jnp.ndarray):
-    return ConstNode(name, value)
-
-
 class DistributionNode(Node):
     """Parent class for all distributions.
 
@@ -136,7 +132,7 @@ class Model(abc.ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def sample(self) -> Dict:
+    def sample(self, key: jnp.ndarray) -> Dict:
         raise NotImplementedError()
 
     def log_prob(self, values: Dict) -> jnp.array:
@@ -149,10 +145,17 @@ class Model(abc.ABC):
         Returns:
             Log probability of model.
         """
+        values_ = copy.copy(values)
+
+        # add ConstNodes to values as dependencies
+        for name, node in self.nodes.items():
+            if isinstance(node, ConstNode):
+                values_[name] = node.value
+
         logp = 0
         for name, node in self.nodes.items():
             if isinstance(node, DistributionNode):
-                logp += node.log_prob(values)
+                logp += node.log_prob(values_)
 
         return logp
 
@@ -206,3 +209,9 @@ class Model(abc.ABC):
             layers.append(new_layer)
 
         return layers
+
+
+def const_node(model: Model, name: str, value: jnp.ndarray):
+    node = ConstNode(name, value)
+    model.add(node)
+    return model

@@ -61,8 +61,8 @@ class ForwardModel(core.Model):
             for node in layer:
                 if isinstance(node, core.DistributionNode):
                     res[node.name] = node.sample(res, key)
-                else:
-                    raise TypeError("Unknown node type")
+                elif isinstance(node, core.ConstNode):
+                    res[node.name] = node.value
 
         return res
 
