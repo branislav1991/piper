@@ -10,6 +10,7 @@ import piper.core as core
 import piper.functional as func
 import piper.distributions as dist
 import piper.models as models
+from piper import test_util as tu
 
 
 def test_metropolis_hastings_wrong_proposal_or_initial_samples():
@@ -65,7 +66,7 @@ def test_metropolis_hastings_normal_one_chain():
         samples.append(metropolis_hastings_model.sample(keys[i]))
 
     n1_samples = jnp.stack([i['n1'] for i in samples])
-    assert jnp.isclose(jnp.mean(n1_samples), -0.08231668)
+    tu.check_close(jnp.mean(n1_samples), -0.08231668)
 
 
 def test_metropolis_hastings_normal_normal_one_chain():
@@ -92,7 +93,7 @@ def test_metropolis_hastings_normal_normal_one_chain():
         samples.append(metropolis_hastings_model.sample(keys[i]))
 
     n1_samples = jnp.stack([i['n1'] for i in samples])
-    assert jnp.isclose(jnp.mean(n1_samples), 0.24618316)
+    tu.check_close(jnp.mean(n1_samples), 0.24618316)
 
 
 def test_metropolis_hastings_normal_normal_10_chains():
@@ -120,7 +121,7 @@ def test_metropolis_hastings_normal_normal_10_chains():
         samples.append(metropolis_hastings_model.sample(keys[i]))
 
     n1_samples = jnp.stack([i['n1'] for i in samples]).reshape((-1, ))
-    assert jnp.isclose(jnp.mean(n1_samples), 0.15941639)
+    tu.check_close(jnp.mean(n1_samples), 0.15941639)
 
 
 def test_metropolis_hastings_normal_normal_multidim_10_chains():
@@ -149,34 +150,33 @@ def test_metropolis_hastings_normal_normal_multidim_10_chains():
         samples.append(metropolis_hastings_model.sample(keys[i]))
 
     n1_samples = jnp.stack([i['n1'] for i in samples]).reshape((-1, 2, 2))
-    assert jnp.allclose(
+    tu.check_close(
         jnp.mean(n1_samples, 0),
         jnp.array([[-0.22292876, 0.19647372], [0.39852002, 0.36776695]]))
 
 
-# def test_metropolis_hastings_beta_bernoulli_10chains():
-    # m = models.create_forward_model()
-    # m = dist.beta(m, 'n1', jnp.array([0.5]), jnp.array([0.5]))
-    # m = dist.bernoulli(m, 'n2', 'n1')
+def test_metropolis_hastings_beta_bernoulli_10chains():
+    m = models.create_forward_model()
+    m = dist.beta(m, 'n1', jnp.array([0.5]), jnp.array([0.5]))
+    m = dist.bernoulli(m, 'n2', 'n1')
 
-    # m = func.condition(m, 'n2', jnp.array([0.9]))
+    m = func.condition(m, 'n2', jnp.array([1]))
 
-    # proposal = models.create_forward_model()
-    # cond = core.const_node('n3', jnp.full((10, )))
-    # proposal = dist.beta(proposal, 'n1', cond, jnp.full((10, ), 0.5))
-    # proposal = func.proposal(proposal, 'n3')
+    proposal = models.create_forward_model()
+    proposal = core.const_node(proposal, 'n3', jnp.full((10, ), 0))
+    proposal = dist.beta(proposal, 'n1', 'n3', jnp.full((10, ), 0.5))
+    proposal = func.proposal(proposal, {'n3': 'n1'})
+    initial_samples = {'n1': jnp.full((10, ), 0.5)}
+    metropolis_hastings_model = func.metropolis_hastings(m,
+                                                         proposal,
+                                                         initial_samples,
+                                                         burnin_steps=300,
+                                                         num_chains=10)
 
-    # initial_samples = {'n1': jnp.full((10, ), 0.5)}
-    # metropolis_hastings_model = func.metropolis_hastings(m,
-    #                                                      proposal,
-    #                                                      initial_samples,
-    #                                                      burnin_steps=100,
-    #                                                      num_chains=10)
+    samples = []
+    keys = jax.random.split(jax.random.PRNGKey(123), 100)
+    for i in range(100):
+        samples.append(metropolis_hastings_model.sample(keys[i]))
 
-    # samples = []
-    # keys = jax.random.split(jax.random.PRNGKey(123), 100)
-    # for i in range(100):
-    #     samples.append(metropolis_hastings_model.sample(keys[i]))
-
-    # n1_samples = jnp.stack([i['n1'] for i in samples]).reshape((-1, ))
-    # assert jnp.isclose(jnp.mean(n1_samples), 0.9974573)
+    n1_samples = jnp.stack([i['n1'] for i in samples]).reshape((-1, ))
+    tu.check_close(jnp.mean(n1_samples), 0.76387817)

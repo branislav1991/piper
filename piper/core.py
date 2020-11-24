@@ -153,7 +153,7 @@ class Model(abc.ABC):
                 values_[name] = node.value
 
         logp = 0
-        for name, node in self.nodes.items():
+        for node in self.nodes.values():
             if isinstance(node, DistributionNode):
                 logp += node.log_prob(values_)
 

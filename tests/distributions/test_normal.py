@@ -10,6 +10,7 @@ import piper.functional as func
 import piper.models as models
 from piper.distributions import normal
 from piper import param
+from piper import test_util as tu
 
 
 def test_kl_normal_normal_one_dimensional():
@@ -147,8 +148,8 @@ def test_sample_conditioned_posterior_error():
 
 def test_log_prob_normal():
     model = models.create_forward_model()
-    model = normal(model, 'n1', jnp.array([0.]), jnp.array([1.]))
-    log_prob_mean = model.log_prob({'n1': jnp.array([0.])})
-    assert(jnp.isclose(log_prob_mean, -0.9189385))
-    log_prob_std = model.log_prob({'n1': jnp.array([1.])})
-    assert(jnp.isclose(log_prob_std, -1.4189385))
+    model = normal(model, 'n1', jnp.array(0.), jnp.array(1.))
+    log_prob_mean = model.log_prob({'n1': jnp.array(0.)})
+    tu.check_close(log_prob_mean, -0.9189385)
+    log_prob_std = model.log_prob({'n1': jnp.array(1.)})
+    tu.check_close(log_prob_std, -1.4189385)

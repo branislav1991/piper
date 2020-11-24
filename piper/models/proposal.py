@@ -60,7 +60,7 @@ class ProposalModel(forward.ForwardModel):
         changed temporarily for these functions.
         """
         self.old_values = {}
-        for constn, samplen in self.condition_nodes.items():
+        for constn in self.condition_nodes:
             self.old_values[constn] = self.nodes[constn].value
 
     def _restore_const_vals(self) -> None:

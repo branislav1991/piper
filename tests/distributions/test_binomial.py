@@ -11,6 +11,7 @@ import piper.models as models
 from piper.distributions import binomial
 from piper.distributions import bernoulli
 from piper import param
+from piper import test_util as tu
 
 
 def test_sample_bernoulli():
@@ -44,8 +45,8 @@ def test_sample_bernoulli():
                        in_axes=(0, None),
                        out_axes=0)(keys, model)
 
-    assert jnp.allclose(jnp.mean(samples, axis=0),
-                        jnp.array([[0.45999998, 0.55], [0.57, 0.48]]))
+    tu.check_close(jnp.mean(samples, axis=0),
+                   jnp.array([[0.45999998, 0.55], [0.57, 0.48]]))
 
 
 def test_sample_binomial():
@@ -165,8 +166,8 @@ def test_sample_conditioned_posterior_error():
 
 def test_log_prob_bernoulli():
     model = models.create_forward_model()
-    model = bernoulli(model, 'n1', jnp.array([0.8]))
-    log_prob_0 = model.log_prob({'n1': jnp.array([0])})
-    log_prob_1 = model.log_prob({'n1': jnp.array([1])})
-    assert (jnp.isclose(log_prob_0, -1.609438))
-    assert (jnp.isclose(log_prob_1, -0.22314353))
+    model = bernoulli(model, 'n1', jnp.array(0.8))
+    log_prob_0 = model.log_prob({'n1': jnp.array(0)})
+    log_prob_1 = model.log_prob({'n1': jnp.array(1)})
+    tu.check_close(log_prob_0, -1.609438)
+    tu.check_close(log_prob_1, -0.22314353)
