@@ -1,24 +1,32 @@
 # Copyright (c) 2020 Branislav Holländer. All rights reserved.
 # See the file LICENSE for copying permission.
 
+from typing import Dict
+
 import jax.numpy as jnp
 
 from piper import core
 
 
-def condition(model: core.Model, node: str, val: jnp.ndarray) -> core.Model:
-    """Conditions a node on a variable.
+class Condition:
+    def __init__(self, conditions: Dict[str, jnp.ndarray]):
+        """Context manager to condition a model on variables.
 
-    Args:
-        model: Model to apply the conditioning to.
-        node: Node to condition on.
-        val: Value to condition with.
+        Args:
+            conditions: Dictionary of variable names and values
+                to condition on.
+        """
+        self.conditions = conditions
 
-    Returns:
-        New model with the conditioned value.
-    """
-    if node not in model:
-        raise ValueError('Conditioned node not in graph')
+    def __enter__(self):
+        core._MODIFIER_STACK.append(self)
 
-    model[node].condition(val)
-    return model
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        assert core._MODIFIER_STACK[-1] == self
+        core._MODIFIER_STACK.pop()
+
+    def _sample(self, node_name: str, key: jnp.ndarray):
+        if node_name in self.conditions:
+            return self.conditions[node_name]
+        else:
+            return None

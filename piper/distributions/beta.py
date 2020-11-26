@@ -9,107 +9,66 @@ import jax.numpy as jnp
 import jax.scipy.stats.beta as jax_beta
 import jax.scipy.special as jax_special
 
-from piper.functional import kl_divergence
+from piper.distributions.distribution import Distribution
 from piper import core
-from piper import param
 from piper import utils
 
 
-class Beta(core.DistributionNode):
-    def __init__(self, name: str, alpha: Union[str, jnp.ndarray],
-                 beta: Union[str, jnp.ndarray]):
+class Beta(Distribution):
+    def __init__(self, alpha: jnp.ndarray, beta: jnp.ndarray):
         """Initializes a Beta distribution with parameters alpha and beta.
 
         alpha and beta may be multidimensional, in which case they represent
         multiple Beta distributions.
 
         Args:
-            alpha: This can be either a named entity
-                specified in the model or a JAX ndarray. If a JAX ndarray
-                is provided, it has to be a floating-point type and
-                non-negative.
-            beta: If a JAX ndarray is provided, it must have the same
-                shape and type as alpha and be non-negative.
+            alpha: Has to be a floating-point type and non-negative.
+            beta: Must have the same shape as alpha and be non-negative.
         """
-        super().__init__(name)
+        super().__init__()
 
-        self.alpha = param.to_param(alpha)
-        self.beta = param.to_param(beta)
-
-        if isinstance(self.alpha, param.DependentParam):
-            self.dependencies.append(self.alpha.name)
-
-        if isinstance(self.beta, param.DependentParam):
-            self.dependencies.append(self.beta.name)
+        self.alpha = alpha
+        self.beta = beta
 
     def _can_condition(self, val: jnp.ndarray):
         return utils.is_floating(val) and jnp.all(0 <= val) \
             and jnp.all(val <= 1)
 
-    def _sample(self, dependencies: Dict, key: jnp.ndarray) -> jnp.ndarray:
+    def sample(self, key: jnp.ndarray) -> jnp.ndarray:
         """Sample from the distribution.
 
         Args:
-            dependencies: Dict of dependencies.
             key: JAX random key.
         """
-        alpha_sample, beta_sample = self._get_samples([self.alpha, self.beta],
-                                                      dependencies)
-
-        if alpha_sample.shape != beta_sample.shape:
-            raise RuntimeError("alpha and beta need to be of same shape")
-
-        shape = alpha_sample.shape
-        keys = jax.random.split(key, alpha_sample.size)
-        alpha_sample = alpha_sample.reshape((alpha_sample.size))
-        beta_sample = beta_sample.reshape((beta_sample.size))
+        shape = self.alpha.shape
+        keys = jax.random.split(key, self.alpha.size)
+        alpha_sample = self.alpha.reshape((self.alpha.size))
+        beta_sample = self.beta.reshape((self.beta.size))
         samp = []
         for a, b, k in zip(alpha_sample, beta_sample, keys):
             samp.append(jax.random.beta(k, a, b))
 
         return jnp.stack(samp).reshape(shape)
 
-    def _log_prob(self, x: jnp.ndarray, dependencies: Dict) -> jnp.ndarray:
+    def log_prob(self, x: jnp.ndarray) -> jnp.ndarray:
         """Calculate log probability.
         """
-        if jnp.any(jnp.logical_or(x < 0, x > 1)):
-            raise ValueError('x not in domain of Beta distribution')
-
-        alpha_sample, beta_sample = self._get_samples([self.alpha, self.beta],
-                                                      dependencies)
-        if alpha_sample.shape != beta_sample.shape:
-            raise RuntimeError("alpha and beta need to be of same shape")
-
-        return jax_beta.logpdf(x, alpha_sample, beta_sample)
+        return jax_beta.logpdf(x, self.alpha, self.beta)
 
 
-def beta(model: core.Model, name: str, alpha: Union[str, jnp.ndarray],
-         beta: Union[str, jnp.ndarray]):
-    if not model:
-        raise ValueError('model may not be None')
-
-    dist = Beta(name, alpha, beta)
-    model.add(dist)
-    return model
+def beta(alpha: jnp.ndarray, beta: jnp.ndarray):
+    return Beta(alpha, beta)
 
 
-@kl_divergence.register_kl(Beta, Beta)
+@core.register_kl(Beta, Beta)
 def kl_beta_beta(dist1: Beta, dist2: Beta):
-    if isinstance(dist1.alpha, param.ConstParam) and isinstance(
-            dist1.beta, param.ConstParam) and isinstance(
-                dist2.alpha, param.ConstParam) and isinstance(
-                    dist2.beta, param.ConstParam):
+    a1 = dist1.alpha
+    a2 = dist2.alpha
+    b1 = dist1.beta
+    b2 = dist2.beta
 
-        a1 = dist1.alpha.value
-        a2 = dist2.alpha.value
-        b1 = dist1.beta.value
-        b2 = dist2.beta.value
-
-        return jnp.log(jax_special.betainc(a2, b2, 1)
-                       / jax_special.betainc(a1, b1, 1)) \
-            - (a2 - a1) * jax_special.digamma(a1) \
-            - (b2 - b1) * jax_special.digamma(b1) \
-            + (a2 - a1 + b2 - b1) * jax_special.digamma(a1 + b1)
-
-    # TODO: we need to measure the kl-divergence in this case by sampling
-    raise NotImplementedError
+    return jnp.log(jax_special.betainc(a2, b2, 1)
+                   / jax_special.betainc(a1, b1, 1)) \
+        - (a2 - a1) * jax_special.digamma(a1) \
+        - (b2 - b1) * jax_special.digamma(b1) \
+        + (a2 - a1 + b2 - b1) * jax_special.digamma(a1 + b1)
