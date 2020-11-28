@@ -15,7 +15,7 @@ class Distribution:
         self._condition = None
 
     @abc.abstractmethod
-    def _can_condition(self, val: jnp.ndarray):
+    def can_condition(self, val: jnp.ndarray):
         raise NotImplementedError
 
     @abc.abstractmethod

@@ -6,6 +6,7 @@ from typing import Dict
 import jax.numpy as jnp
 
 from piper import core
+from piper.distributions import distribution as dist
 
 
 class Condition:
@@ -25,8 +26,11 @@ class Condition:
         assert core._MODIFIER_STACK[-1] == self
         core._MODIFIER_STACK.pop()
 
-    def _sample(self, node_name: str, key: jnp.ndarray):
+    def process(self, node_name: str, d: dist.Distribution, key: jnp.ndarray):
         if node_name in self.conditions:
+            if not d.can_condition(self.conditions[node_name]):
+                raise ValueError('Cannot condition on this variable')
+
             return self.conditions[node_name]
         else:
             return None

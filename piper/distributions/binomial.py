@@ -36,7 +36,7 @@ class Binomial(Distribution):
 
         self.sample_binomial = jax.jit(sample_binomial, static_argnums=0)
 
-    def _can_condition(self, val: jnp.ndarray):
+    def can_condition(self, val: jnp.ndarray):
         return utils.is_integer(val)
 
     def sample(self, key: jnp.ndarray) -> jnp.ndarray:

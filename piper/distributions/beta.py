@@ -30,7 +30,7 @@ class Beta(Distribution):
         self.alpha = alpha
         self.beta = beta
 
-    def _can_condition(self, val: jnp.ndarray):
+    def can_condition(self, val: jnp.ndarray):
         return utils.is_floating(val) and jnp.all(0 <= val) \
             and jnp.all(val <= 1)
 

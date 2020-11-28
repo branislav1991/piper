@@ -31,7 +31,7 @@ class Normal(Distribution):
         self.mu = mu
         self.sigma = sigma
 
-    def _can_condition(self, val: jnp.ndarray):
+    def can_condition(self, val: jnp.ndarray):
         return utils.is_floating(val)
 
     def sample(self, key: jnp.ndarray) -> jnp.ndarray:

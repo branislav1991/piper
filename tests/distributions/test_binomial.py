@@ -104,8 +104,8 @@ def test_kl_normal_normal_multi_dimensional():
 
     assert jnp.all(jnp.abs(func.compute_kl_div(n1, n3)) < 1e-6)
     assert jnp.all(
-        jnp.abs(func.compute_kl_div(n1, n4) -
-                jnp.array([5.1082563, 0.0])) < 1e-6)
+        jnp.abs(func.compute_kl_div(n1, n4)
+                - jnp.array([5.1082563, 0.0])) < 1e-6)
 
 
 def test_sample_conditioned():
