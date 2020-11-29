@@ -7,7 +7,9 @@ import jax
 import jax.numpy as jnp
 
 from piper.functional.log_prob_module import log_prob
+from piper.functional.trace_module import trace
 from piper.functional.condition_module import condition
+from piper import tree
 
 
 class metropolis_hastings:
@@ -46,25 +48,31 @@ class metropolis_hastings:
         def parallel(key, current, args, kwargs):
             proposed_sample = self.proposal(key, **current)
 
-            new_loglik_proposal = log_prob(
-                condition(self.proposal, proposed_sample))
-            new_loglik_proposal(key, **current)
-            new_loglik_proposal = new_loglik_proposal.get()
+            tracer = trace(condition(self.proposal, proposed_sample))
+            tracer(key, **current)
+            proposal_tree = tracer.get_tree()
+            new_loglik_proposal = log_prob(proposal_tree)
 
-            old_loglik_proposal = log_prob(condition(self.proposal, current))
-            old_loglik_proposal(key, **proposed_sample)
-            old_loglik_proposal = old_loglik_proposal.get()
+            tracer = trace(condition(self.proposal, current))
+            tracer(key, **proposed_sample)
+            old_loglik_proposal = log_prob(tracer.get_tree())
 
-            new_loglik_model = log_prob(condition(self.model, proposed_sample))
-            new_loglik_model(*args, **kwargs)
-            new_loglik_model = new_loglik_model.get()
+            tracer = trace(condition(self.model, proposed_sample))
+            tracer(*args, **kwargs)
+            model_new = tracer.get_tree()
+            new_loglik_model = log_prob(model_new)
 
-            old_loglik_model = log_prob(condition(self.model, current))
-            old_loglik_model(*args, **kwargs)
-            old_loglik_model = old_loglik_model.get()
+            tracer = trace(condition(self.model, current))
+            tracer(*args, **kwargs)
+            model_old = tracer.get_tree()
+            old_loglik_model = log_prob(model_old)
 
             new_loglik = new_loglik_model + new_loglik_proposal
             old_loglik = old_loglik_model + old_loglik_proposal
+
+            if not self._check_all_conditioned(model_new, model_old):
+                raise RuntimeError(
+                    'Incompatible model, proposal and initial samples')
 
             u = jax.random.uniform(key,
                                    shape=next(iter(
@@ -79,6 +87,25 @@ class metropolis_hastings:
             return res
 
         self.parallel = jax.jit(parallel)
+
+    def _check_all_conditioned(self,
+                               model_new: tree.Tree,
+                               model_old: tree.Tree):
+        """Checks if all model variables are conditioned.
+
+        proposal has to contain samples for all unconditioned variables
+        in the model. current_samples has to contain the same variables as
+        proposal.
+        """
+        for node in model_new.nodes.values():
+            if not node.is_conditioned:
+                return False
+
+        for node in model_old.nodes.values():
+            if not node.is_conditioned:
+                return False
+
+        return True
 
     def __call__(self, *args, **kwargs):
         """Samples from the model.

@@ -12,7 +12,7 @@ from piper.functional.modifier import Modifier
 class condition(Modifier):
     def __init__(self, fn: Callable, conditions: Dict[str, jnp.ndarray]):
         """Modifier to condition a model on variables.
-        
+
         Returns NaNs as samples if distribution cannot be conditioned on
         the provided value. This is required so that we do not break the
         paralellization mechanism of Jax. You will be responsible for
@@ -25,11 +25,16 @@ class condition(Modifier):
         super().__init__(fn)
         self.conditions = conditions
 
-    def process(self, node_name: str, d: dist.Distribution):
-        if node_name in self.conditions:
-            return jnp.where(
-                d.can_condition(self.conditions[node_name]),
-                self.conditions[node_name],
-                jnp.full(self.conditions[node_name].shape, jnp.nan))
-        else:
-            return None
+    def process(self, message: Dict):
+        if message['name'] in self.conditions:
+            can_condition = message['distribution'].can_condition(
+                self.conditions[message['name']])
+
+            nans = jnp.full(self.conditions[message['name']].shape, jnp.nan)
+
+            message['is_conditioned'] = True
+            message['sample'] = jnp.where(can_condition,
+                                          self.conditions[message['name']],
+                                          nans)
+
+        return message

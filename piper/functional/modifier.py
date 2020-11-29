@@ -1,12 +1,9 @@
 # Copyright (c) 2020 Branislav Holländer. All rights reserved.
 # See the file LICENSE for copying permission.
 
-from typing import Callable
-
-import jax.numpy as jnp
+from typing import Callable, Dict
 
 from piper import core
-from piper.distributions import distribution as dist
 
 
 class Modifier:
@@ -22,12 +19,11 @@ class Modifier:
         assert core._MODIFIER_STACK[-1] == self
         core._MODIFIER_STACK.pop()
 
-    def process(self, node_name: str, d: dist.Distribution):
-        pass
+    def process(self, message: Dict) -> Dict:
+        return message
 
-    def post_process(self, sample: jnp.ndarray, node_name: str,
-                     d: dist.Distribution):
-        pass
+    def post_process(self, message: Dict) -> Dict:
+        return message
 
     def __call__(self, *args, **kwargs):
         with self:

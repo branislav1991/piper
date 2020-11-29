@@ -15,19 +15,21 @@ def test_log_prob_normal():
         return n1
 
     # Unconditioned
-    log_prob_calculator = func.log_prob(model)
+    tracer = func.trace(model)
     key = jax.random.PRNGKey(123)
-    log_prob_calculator(key)
-    log_prob = log_prob_calculator.get()
+    tracer(key)
+    tree = tracer.get_tree()
+    log_prob = func.log_prob(tree)
 
     tu.check_close(log_prob, -1.2025023)
 
     # Conditioned
     conditioned_model = func.condition(model, {'n1': jnp.array(0.)})
-    log_prob_calculator = func.log_prob(conditioned_model)
+    tracer = func.trace(conditioned_model)
     key = jax.random.PRNGKey(123)
-    log_prob_calculator(key)
-    log_prob = log_prob_calculator.get()
+    tracer(key)
+    tree = tracer.get_tree()
+    log_prob = func.log_prob(tree)
 
     tu.check_close(log_prob, -0.9189385)
 
@@ -45,9 +47,10 @@ def test_log_prob_normal_normal():
         'n1': jnp.array(0.),
         'n2': jnp.array(1.)
     })
-    log_prob_calculator = func.log_prob(conditioned_model)
+    tracer = func.trace(conditioned_model)
     key = jax.random.PRNGKey(123)
-    log_prob_calculator(key)
-    log_prob = log_prob_calculator.get()
+    tracer(key)
+    tree = tracer.get_tree()
+    log_prob = func.log_prob(tree)
 
     tu.check_close(log_prob, -2.337877)
