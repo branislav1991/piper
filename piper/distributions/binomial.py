@@ -18,7 +18,7 @@ class Binomial(Distribution):
         multiple binomial distributions.
 
         Args:
-            n: Number of trials. Has to be of type int32 and non-negative.
+            n: Number of trials. Has to be an integer and non-negative.
             p: Probability of the success of a trial. Must have same shape
                 as n and must be between 0 and 1.
         """
@@ -27,14 +27,8 @@ class Binomial(Distribution):
         if n.shape != p.shape:
             raise ValueError('n and p need to have the same shape')
 
-        self.n = n
+        self.n = jnp.int32(n)
         self.p = p
-
-        def sample_binomial(n, p, key):
-            samples = jax.random.bernoulli(key, p, shape=(n, ))
-            return jnp.sum(samples)
-
-        self.sample_binomial = jax.jit(sample_binomial, static_argnums=0)
 
     def can_condition(self, val: jnp.ndarray):
         return utils.is_integer(val)
@@ -51,9 +45,12 @@ class Binomial(Distribution):
         p_sample = self.p.reshape((self.p.size))
         samp = []
         for n, p, k in zip(n_sample, p_sample, keys):
-            samp.append(self.sample_binomial(n, p, k))
+            samples = jax.random.bernoulli(k, p, shape=(n, ))
+            samp.append(jnp.sum(samples))
 
-        return jnp.stack(samp).reshape(shape)
+        is_nan = jnp.isnan(self.p)
+        return jnp.where(is_nan, jnp.full(shape, jnp.nan),
+                         jnp.stack(samp).reshape(shape))
 
     def log_prob(self, x: jnp.ndarray) -> jnp.ndarray:
         """Calculate log probability.

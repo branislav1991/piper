@@ -31,8 +31,10 @@ class Beta(Distribution):
         self.beta = beta
 
     def can_condition(self, val: jnp.ndarray):
-        return utils.is_floating(val) and jnp.all(0 <= val) \
-            and jnp.all(val <= 1)
+        in_range = jnp.logical_and(
+            jnp.all(jnp.greater_equal(val, jnp.array(0.))),
+            jnp.all(jnp.greater_equal(jnp.array(1.), val)))
+        return jnp.logical_and(utils.is_floating(val), in_range)
 
     def sample(self, key: jnp.ndarray) -> jnp.ndarray:
         """Sample from the distribution.
@@ -40,15 +42,12 @@ class Beta(Distribution):
         Args:
             key: JAX random key.
         """
-        shape = self.alpha.shape
-        keys = jax.random.split(key, self.alpha.size)
-        alpha_sample = self.alpha.reshape((self.alpha.size))
-        beta_sample = self.beta.reshape((self.beta.size))
-        samp = []
-        for a, b, k in zip(alpha_sample, beta_sample, keys):
-            samp.append(jax.random.beta(k, a, b))
+        sample = jax.random.beta(key, self.alpha, self.beta)
 
-        return jnp.stack(samp).reshape(shape)
+        is_nan = jnp.logical_or(jnp.isnan(self.alpha), jnp.isnan(self.beta))
+        return jnp.where(is_nan,
+                         jnp.full(self.alpha.shape, jnp.nan),
+                         sample)
 
     def log_prob(self, x: jnp.ndarray) -> jnp.ndarray:
         """Calculate log probability.

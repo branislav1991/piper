@@ -10,9 +10,14 @@ from piper.distributions import distribution as dist
 def sample(sample_name: str, d: dist.Distribution, key: jnp.ndarray):
     sample = None
     for mod in core._MODIFIER_STACK[::-1]:
-        sample = mod.process(sample_name, d, key)
+        new_sample = mod.process(sample_name, d)
+        sample = sample if new_sample is None else new_sample
 
     if sample is None:
-        return d.sample(key)
-    else:
-        return sample
+        sample = d.sample(key)
+
+    for mod in core._MODIFIER_STACK[::-1]:
+        new_sample = mod.post_process(sample, sample_name, d)
+        sample = sample if new_sample is None else new_sample
+
+    return sample

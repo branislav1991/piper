@@ -44,7 +44,10 @@ class Normal(Distribution):
                                      shape=self.mu.shape,
                                      dtype=self.mu.dtype)
 
-        return std_norm * self.sigma + self.mu
+        is_nan = jnp.logical_or(jnp.isnan(self.mu), jnp.isnan(self.sigma))
+        return jnp.where(is_nan,
+                         jnp.full(self.mu.shape, jnp.nan),
+                         std_norm * self.sigma + self.mu)
 
     def log_prob(self, x: jnp.ndarray) -> jnp.ndarray:
         return jax_norm.logpdf(x, self.mu, self.sigma)
@@ -62,5 +65,5 @@ def kl_normal_normal(dist1: Normal, dist2: Normal):
     sigma2 = dist2.sigma
 
     k = 1
-    return 0.5 * ((sigma1 / sigma2) + (mu2 - mu1) * (1. / sigma2)
-                  * (mu2 - mu1) - k + jnp.log(sigma2 / sigma1))
+    return 0.5 * ((sigma1 / sigma2) + (mu2 - mu1) * (1. / sigma2) *
+                  (mu2 - mu1) - k + jnp.log(sigma2 / sigma1))

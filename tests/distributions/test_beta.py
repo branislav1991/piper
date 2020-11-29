@@ -1,8 +1,6 @@
 # Copyright (c) 2020 Branislav Holländer. All rights reserved.
 # See the file LICENSE for copying permission.
 
-import pytest
-
 import jax
 import jax.numpy as jnp
 
@@ -18,24 +16,25 @@ def test_sample_beta():
     keys = jax.random.split(jax.random.PRNGKey(123), 100)
     samples = jax.vmap(lambda k: model1(k))(keys)
 
-    tu.check_close(jnp.mean(samples), 0.45465213)
+    tu.check_close(jnp.mean(samples), 0.48640198)
 
     def model2(key):
         return func.sample('n', dist.beta(jnp.array(2.), jnp.array(5.)), key)
 
     samples = jax.vmap(lambda k: model2(k))(keys)
 
-    tu.check_close(jnp.mean(samples), 0.2994858)
+    tu.check_close(jnp.mean(samples), 0.2719047)
 
     def model3(key):
-        return func.sample('n', dist.beta(jnp.full((2, 2), 0.5), jnp.full((2, 2), 0.5)), key)
+        return func.sample(
+            'n', dist.beta(jnp.full((2, 2), 0.5), jnp.full((2, 2), 0.5)), key)
 
     keys = jax.random.split(jax.random.PRNGKey(123), 100)
     samples = jax.vmap(lambda k: model3(k))(keys)
 
     tu.check_close(
         jnp.mean(samples, 0),
-        jnp.array([[0.51573753, 0.5368215], [0.50728726, 0.51721746]]))
+        jnp.array([[0.50263643, 0.4815126], [0.5299667, 0.47800454]]))
 
 
 def test_kl_beta_beta_one_dimensional():
@@ -58,10 +57,10 @@ def test_sample_conditioned_invalid_value_error():
         n1 = func.sample('n1', dist.beta(jnp.array(0.5), jnp.array(0.5)), key)
         return n1
 
-    with pytest.raises(ValueError):  # value must be between 0 and 1
-        with func.Condition({'n1': jnp.array(2.0)}):
-            key = jax.random.PRNGKey(123)
-            model(key)
+    conditioned_model = func.condition(model, {'n1': jnp.array(2.0)})
+    key = jax.random.PRNGKey(123)
+    sample = conditioned_model(key)
+    assert jnp.isnan(sample)
 
 
 def test_sample_conditioned():
@@ -70,9 +69,9 @@ def test_sample_conditioned():
         n2 = func.sample('n2', dist.bernoulli(n1), key)
         return n2
 
-    with func.Condition({'n1': jnp.array(1.0)}):
-        keys = jax.random.split(jax.random.PRNGKey(123), 100)
-        samples = jax.vmap(lambda k: model(k))(keys)
+    conditioned_model = func.condition(model, {'n1': jnp.array(1.0)})
+    keys = jax.random.split(jax.random.PRNGKey(123), 100)
+    samples = jax.vmap(lambda k: conditioned_model(k))(keys)
 
     assert jnp.all(samples == 1)
 

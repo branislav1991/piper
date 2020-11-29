@@ -71,8 +71,8 @@ procedure in a special *Condition* context:
 
         return n2
         
-    with func.Condition({'n1': jnp.array(0.)}):
-        sample = conditioned_model()
+    conditioned_model = func.condition(model, {'n1': jnp.array(0.)})
+    sample = conditioned_model()
         
 You may now sample from the conditional distribution by calling it as you would an unconditioned model:
 
@@ -90,27 +90,32 @@ naive way won't capture the posterior distribution:
         
         return n1
         
-    with func.Condition({'n2': jnp.array(1.)}):
-        sample = model()  # will give incorrect result
+    conditioned_model = func.condition(model, {'n2': jnp.array(1.)})
+    sample = conditioned_model()  # will give incorrect result
  
 
 In this case, you will need to rely on a sampling algorithm to obtain a sample from the
 posterior. At the moment, piper supports the Metropolis-Hastings algorithm:
 
     # With the model defined as above
-    def proposal(**current_samples):
+    def proposal(key, **current_samples):
         key = jax.random.PRNGKey(123)
 
-        proposal_n1 = func.sample('n1', dist.normal(current_samples['n1'], jnp.array(1.)), key)
+        proposal_n1 = func.sample('n1', dist.normal(current_samples['n1'], jnp.array(5.)), key)
         return {'n1': proposal_n1}
     
     initial_samples = {'n1': jnp.array(0.)}
-    metropolis_hastings_model = func.metropolis_hastings(conditioned_model, proposal, initial_samples, burn_in_steps=500, num_chains=1)
+    metropolis_hastings_model = func.metropolis_hastings(conditioned_model, 
+                                                         proposal, 
+                                                         initial_samples, 
+                                                         num_chains=1)
 
     samples = []
-    keys = jax.random.split(jax.random.PRNGKey(123), 100)
-    for i in range(100):  # generate 100 samples after burn-in
-        samples.append(func.sample(metropolis_hastings_model, keys[i]))
+    keys = jax.random.split(jax.random.PRNGKey(123), 500)
+    for i in range(500):
+        sample = metropolis_hastings_model(keys[i])
+        if i >= 100:  # ignore first 100 samples as burn-in
+            samples.append(sample)
         
 First we create a proposal model to propose samples for us. As the proposal proposes
 new samples like *P(x'|x)*, we need to specify which node will be used as *x* for conditioning.

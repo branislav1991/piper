@@ -114,9 +114,9 @@ def test_sample_conditioned():
         n2 = func.sample('n2', dist.binomial(n1, jnp.array(0.5)), key)
         return n2
 
-    with func.Condition({'n1': jnp.array(1)}):
-        keys = jax.random.split(jax.random.PRNGKey(123), 100)
-        samples = jax.vmap(lambda k: model(k))(keys)
+    conditioned_model = func.condition(model, {'n1': jnp.array(1)})
+    keys = jax.random.split(jax.random.PRNGKey(123), 100)
+    samples = jax.vmap(lambda k: conditioned_model(k))(keys)
 
     assert jnp.mean(samples) > 0.4 and jnp.mean(samples) < 0.6
 
@@ -127,10 +127,10 @@ def test_sample_conditioned_invalid_value_error():
         n2 = func.sample('n2', dist.binomial(jnp.array(1), n1), key)
         return n2
 
-    with pytest.raises(ValueError):  # n1 cannot be conditioned on a float value
-        with func.Condition({'n1': jnp.array(0.5)}):
-            key = jax.random.PRNGKey(123)
-            model(key)
+    conditioned_model = func.condition(model, {'n1': jnp.array(0.5)})
+    key = jax.random.PRNGKey(123)
+    sample = conditioned_model(key)
+    assert jnp.isnan(sample)
 
 
 def test_log_prob_bernoulli():

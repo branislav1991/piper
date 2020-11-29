@@ -91,9 +91,9 @@ def test_sample_conditioned():
                                   dist.normal(weight, jnp.array(1.)), key)
         return measurement
 
-    with func.Condition({'weight': jnp.array(0.)}):
-        keys = jax.random.split(jax.random.PRNGKey(123), 100)
-        samples = jax.vmap(lambda k: model(k))(keys)
+    conditioned_model = func.condition(model, {'weight': jnp.array(0.)})
+    keys = jax.random.split(jax.random.PRNGKey(123), 100)
+    samples = jax.vmap(lambda k: conditioned_model(k))(keys)
 
     assert abs(jnp.mean(samples)) < 0.2
 
