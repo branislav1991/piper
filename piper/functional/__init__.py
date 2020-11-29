@@ -6,7 +6,8 @@ from piper.functional.kl_divergence import compute_kl_div
 from piper.functional.log_prob_module import log_prob
 from piper.functional.metropolis_hastings_module import metropolis_hastings
 from piper.functional.sampler import sample
+from piper.functional.trace_module import trace
 
 __all__ = [
-    "compute_kl_div", "sample", "condition", "log_prob", "metropolis_hastings"
+    "compute_kl_div", "sample", "condition", "log_prob", "metropolis_hastings", "trace"
 ]
