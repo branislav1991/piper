@@ -26,17 +26,18 @@ You may define a model in Piper by specifying a generating function like this:
     import jax
     import jax.numpy as jnp
     import piper.distributions as dist
-    import piper.models as models
+    import piper.functional as func
 
     def model():
-        alpha0 = jnp.array(10.0)
-        beta0 = jnp.array(10.0)
+        alpha0 = jnp.array(0.5)
+        beta0 = jnp.array(0.5)
         
-        m = models.create_forward_model()
-        m = dist.beta(m, 'latent_fairness', alpha0, beta0)
-        m = dist.bernoulli(m, 'obs', 'latent_fairness')
+        keys = jax.random.split(jax.random.PRNGKey(123), 2)
+        
+        fairness = func.sample('latent_fairness', dist.beta(alpha0, beta0), keys[0])
+        obs = func.sample('obs', dist.bernoulli(fairness), keys[1])
 
-        return m
+        return [fairness, obs]
             
 This piece of code describes a model to check for the bias of a coin flip. The bias
 is modeled as a Beta distribution ("latent_fairness") while the observations
@@ -45,85 +46,82 @@ coin flip being heads ("obs") is given by a sample from the Beta distribution.
 
 After specifying the model, we can sample from it by calling
 
-    key = jax.random.PRNGKey(123)
-    sample = model.sample(key)['obs']
-    
-This will return a dictionary of sampled values.
+    sample = model()
 
 ### Computing KL-divergence
 
 Piper allows you to compute the KL-divergence for defined distributions. This is
 embedded in the model API and can be used like this:
 
-    import piper.functional as func
-    
-    def model():
-        m = models.create_forward_model()
-        m = dist.normal(m, 'n1', jnp.array([0., 0.]), jnp.array([1., 1.]))
-        m = dist.normal(m, 'n2', jnp.array([1., 1.]), jnp.array([1., 1.]))
+    n1 = dist.normal('n1', jnp.array([0., 0.]), jnp.array([1., 1.]))
+    n2 = dist.normal('n2', jnp.array([1., 1.]), jnp.array([1., 1.]))
         
-        return m
-
-    kl_normal_normal = func.compute_kl_div(model(), 'n1', 'n2') # returns [0.5, 0.5]
+    kl_normal_normal = func.compute_kl_div(n1, n2) # returns [0.5, 0.5]
     
 ### Conditioning
     
-Conditioning on Bayesian network variables is easy:
-
-    import piper.functional as func
+Conditioning on Bayesian network variables is performed by enclosing the sampling
+procedure in a special *Condition* context:
 
     def model():
-        m = models.create_forward_model()
-        m = dist.normal(m, 'n1', jnp.array([0.]), jnp.array([1.]))
-        m = dist.normal(m, 'n2', 'n1', jnp.array([1.]))
-        m = func.condition(m, 'n1', jnp.array([0.5]))
+        keys = jax.random.split(jax.random.PRNGKey(123), 2)
+
+        n1 = func.sample('n1', dist.normal(jnp.array(0.), jnp.array(1.)), keys[0])
+        n2 = func.sample('n2', dist.normal(n1, jnp.array(1.)), keys[1])
+
+        return n2
         
-        return m
+    conditioned_model = func.condition(model, {'n1': jnp.array(0.)})
+    sample = conditioned_model()
         
-You may now sample from the conditional distribution.
+You may now sample from the conditional distribution by calling it as you would an unconditioned model:
 
 ### Metropolis-Hastings
 
 If you condition on a variable further down the Bayesian network graph, you will
 effectively have to sample from the posterior distribution. Trying to do so in the
-naive way will result in an exception:
-
-    import piper.functional as func
-    from piper import core
+naive way won't capture the posterior distribution:
 
     def model():
-        m = models.create_forward_model()
-        m = dist.normal(m, 'n1', jnp.array([0.]), jnp.array([1.]))
-        m = dist.normal(m, 'n2', 'n1', jnp.array([1.]))
-        m = func.condition(m, 'n2', jnp.array([0.5]))
+        keys = jax.random.split(jax.random.PRNGKey(123), 2)
+
+        n1 = func.sample('n1', dist.normal(jnp.array(0.), jnp.array(1.)), keys[0])
+        n2 = func.sample('n2', dist.normal(n1, jnp.array(1.)), keys[1])
         
-        return m
+        return n1
         
-    key = jax.random.PRNGKey(123)
-    sample = model.sample(key)['n1']  # will throw a RuntimeError
-    
+    conditioned_model = func.condition(model, {'n2': jnp.array(1.)})
+    sample = conditioned_model()  # will give incorrect result
+ 
+
 In this case, you will need to rely on a sampling algorithm to obtain a sample from the
-posterior. At the moment, piper supports only the Metropolis-Hastings algorithm:
+posterior. At the moment, piper supports the Metropolis-Hastings algorithm:
 
     # With the model defined as above
-    proposal = models.create_forward_model()
-    proposal = core.const_node(proposal, 'n3', jnp.array([0.]))
-    proposal = normal(proposal, 'n1' jnp.array([0.]), jnp.array([1.]))
-    proposal = func.proposal(proposal, 'n3')
+    def proposal(key, **current_samples):
+        proposal_n1 = func.sample('n1', dist.normal(current_samples['n1'], jnp.array(5.)), key)
+        return {'n1': proposal_n1}
     
-    initial_samples = {'n1': jnp.array([0.])}
-    metropolis_hastings_model = func.metropolis_hastings(model(), proposal, initial_samples, burn_in_steps=500, num_chains=1)
+    initial_samples = {'n1': jnp.array(0.)}
+    metropolis_hastings_model = func.metropolis_hastings(conditioned_model, 
+                                                         proposal, 
+                                                         initial_samples, 
+                                                         num_chains=1)
 
     samples = []
-    keys = jax.random.split(jax.random.PRNGKey(123), 100)
-    for i in range(100):  # generate 100 samples after burn-in
-        samples.append(metropolis_hastings_model.sample(keys[i]))
+    keys = jax.random.split(jax.random.PRNGKey(123), 500)
+    for i in range(500):
+        sample = metropolis_hastings_model(keys[i])
+        if i >= 100:  # ignore first 100 samples as burn-in
+            samples.append(sample)
         
-First we create a proposal distribution to propose samples for us. This is done using *func.proposal*. As the proposal proposes
-new samples like *P(x'|x)*, we need to specify which node will be used as *x* for conditioning. This is done using the second
-parameter of *func.proposal*.
+First we create a proposal model to propose samples for us. As the proposal proposes
+new samples like *P(x'|x)*, we need to specify which node will be used as *x* for conditioning.
+This is done using the parameters of *proposal*. Each parameter in the *current_samples* dictionary
+is named and assigned a conditioning value.
 
-The model returned by *func.metropolis_hastings* will automatically be sampled by the Metropolis-Hastings sampler. Note that using multiple chains will be
+The model returned by *func.metropolis_hastings* will automatically be sampled by the
+Metropolis-Hastings sampler. Note that using multiple chains will be
 automatically parallelized by piper.
 
 [JAX]: https://github.com/google/jax
