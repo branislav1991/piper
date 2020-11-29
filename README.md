@@ -99,8 +99,6 @@ posterior. At the moment, piper supports the Metropolis-Hastings algorithm:
 
     # With the model defined as above
     def proposal(key, **current_samples):
-        key = jax.random.PRNGKey(123)
-
         proposal_n1 = func.sample('n1', dist.normal(current_samples['n1'], jnp.array(5.)), key)
         return {'n1': proposal_n1}
     

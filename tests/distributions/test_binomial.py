@@ -110,8 +110,9 @@ def test_kl_normal_normal_multi_dimensional():
 
 def test_sample_conditioned():
     def model(key):
-        n1 = func.sample('n1', dist.bernoulli(jnp.array(0.5)), key)
-        n2 = func.sample('n2', dist.binomial(n1, jnp.array(0.5)), key)
+        keys = jax.random.split(key)
+        n1 = func.sample('n1', dist.bernoulli(jnp.array(0.5)), keys[0])
+        n2 = func.sample('n2', dist.binomial(n1, jnp.array(0.5)), keys[1])
         return n2
 
     conditioned_model = func.condition(model, {'n1': jnp.array(1)})
@@ -123,8 +124,9 @@ def test_sample_conditioned():
 
 def test_sample_conditioned_invalid_value_error():
     def model(key):
-        n1 = func.sample('n1', dist.bernoulli(jnp.array(0.5)), key)
-        n2 = func.sample('n2', dist.binomial(jnp.array(1), n1), key)
+        keys = jax.random.split(key)
+        n1 = func.sample('n1', dist.bernoulli(jnp.array(0.5)), keys[0])
+        n2 = func.sample('n2', dist.binomial(jnp.array(1), n1), keys[1])
         return n2
 
     conditioned_model = func.condition(model, {'n1': jnp.array(0.5)})

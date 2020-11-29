@@ -1,7 +1,7 @@
 # Copyright (c) 2020 Branislav Holländer. All rights reserved.
 # See the file LICENSE for copying permission.
 
-import jax.random
+import jax
 import jax.numpy as jnp
 import jax.scipy.stats.norm as jax_norm
 
@@ -65,5 +65,5 @@ def kl_normal_normal(dist1: Normal, dist2: Normal):
     sigma2 = dist2.sigma
 
     k = 1
-    return 0.5 * ((sigma1 / sigma2) + (mu2 - mu1) * (1. / sigma2) *
-                  (mu2 - mu1) - k + jnp.log(sigma2 / sigma1))
+    return 0.5 * ((sigma1 / sigma2) + (mu2 - mu1) * (1. / sigma2)
+                  * (mu2 - mu1) - k + jnp.log(sigma2 / sigma1))

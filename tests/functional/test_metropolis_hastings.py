@@ -70,8 +70,11 @@ def test_metropolis_hastings_normal_one_chain():
 
 def test_metropolis_hastings_normal_normal_one_chain():
     def model(key):
-        n1 = func.sample('n1', dist.normal(jnp.array(0.), jnp.array(1.)), key)
-        n2 = func.sample('n2', dist.normal(n1, jnp.array(1.)), key)
+        keys = jax.random.split(key, 2)
+        n1 = func.sample('n1',
+                         dist.normal(jnp.array(0.), jnp.array(1.)),
+                         keys[0])
+        n2 = func.sample('n2', dist.normal(n1, jnp.array(1.)), keys[1])
         return n2
 
     conditioned_model = func.condition(model, {'n2': jnp.array(0.5)})
@@ -98,8 +101,11 @@ def test_metropolis_hastings_normal_normal_one_chain():
 
 def test_metropolis_hastings_normal_normal_10_chains():
     def model(key):
-        n1 = func.sample('n1', dist.normal(jnp.array(0.), jnp.array(1.)), key)
-        n2 = func.sample('n2', dist.normal(n1, jnp.array(1.)), key)
+        keys = jax.random.split(key, 2)
+        n1 = func.sample('n1',
+                         dist.normal(jnp.array(0.), jnp.array(1.)),
+                         keys[0])
+        n2 = func.sample('n2', dist.normal(n1, jnp.array(1.)), keys[1])
         return n2
 
     conditioned_model = func.condition(model, {'n2': jnp.array(0.5)})
@@ -126,10 +132,11 @@ def test_metropolis_hastings_normal_normal_10_chains():
 
 def test_metropolis_hastings_normal_normal_multidim_10_chains():
     def model(key):
+        keys = jax.random.split(key, 2)
         n1 = func.sample('n1',
                          dist.normal(jnp.zeros((2, 2)), jnp.full((2, 2), 1.)),
-                         key)
-        n2 = func.sample('n2', dist.normal(n1, jnp.ones((2, 2))), key)
+                         keys[0])
+        n2 = func.sample('n2', dist.normal(n1, jnp.ones((2, 2))), keys[1])
         return n2
 
     conditioned_model = func.condition(model, {'n2': jnp.full((2, 2), 0.5)})
@@ -160,8 +167,11 @@ def test_metropolis_hastings_normal_normal_multidim_10_chains():
 
 def test_metropolis_hastings_beta_bernoulli_10chains():
     def model(key):
-        n1 = func.sample('n1', dist.beta(jnp.array(0.5), jnp.array(0.5)), key)
-        n2 = func.sample('n2', dist.bernoulli(n1), key)
+        keys = jax.random.split(key, 2)
+        n1 = func.sample('n1',
+                         dist.beta(jnp.array(0.5), jnp.array(0.5)),
+                         keys[0])
+        n2 = func.sample('n2', dist.bernoulli(n1), keys[1])
         return n2
 
     conditioned_model = func.condition(model, {'n2': jnp.array(1)})

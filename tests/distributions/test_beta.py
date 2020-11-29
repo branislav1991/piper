@@ -65,8 +65,10 @@ def test_sample_conditioned_invalid_value_error():
 
 def test_sample_conditioned():
     def model(key):
-        n1 = func.sample('n1', dist.beta(jnp.array(0.5), jnp.array(0.5)), key)
-        n2 = func.sample('n2', dist.bernoulli(n1), key)
+        keys = jax.random.split(key, 2)
+        n1 = func.sample('n1', dist.beta(jnp.array(0.5), jnp.array(0.5)),
+                         keys[0])
+        n2 = func.sample('n2', dist.bernoulli(n1), keys[1])
         return n2
 
     conditioned_model = func.condition(model, {'n1': jnp.array(1.0)})

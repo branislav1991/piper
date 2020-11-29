@@ -58,10 +58,13 @@ def test_sample_normal():
 
 def test_sample_joint_normal():
     def model(key):
-        weight = func.sample('weight', dist.normal(jnp.array(0.),
-                                                   jnp.array(1.)), key)
+        keys = jax.random.split(key)
+        weight = func.sample('weight',
+                             dist.normal(jnp.array(0.), jnp.array(1.)),
+                             keys[0])
         measurement = func.sample('measurement',
-                                  dist.normal(weight, jnp.array(1.)), key)
+                                  dist.normal(weight, jnp.array(1.)),
+                                  keys[1])
         return measurement
 
     keys = jax.random.split(jax.random.PRNGKey(123), 100)
@@ -71,11 +74,14 @@ def test_sample_joint_normal():
 
 def test_incompatible_dimensions():
     def model(key):
-        weight = func.sample(
-            'weight', dist.normal(jnp.array([0., 0.]), jnp.array([1., 1.])),
-            key)
+        keys = jax.random.split(key)
+        weight = func.sample('weight',
+                             dist.normal(
+                                 jnp.array([0., 0.]),
+                                 jnp.array([1., 1.])),
+                             keys[0])
         measurement = func.sample('measurement',
-                                  dist.normal(weight, jnp.array([1.])), key)
+                                  dist.normal(weight, jnp.array([1.])), keys[1])
         return measurement
 
     with pytest.raises(ValueError):
@@ -85,10 +91,13 @@ def test_incompatible_dimensions():
 
 def test_sample_conditioned():
     def model(key):
-        weight = func.sample('weight', dist.normal(jnp.array(0.),
-                                                   jnp.array(1.)), key)
+        keys = jax.random.split(key)
+        weight = func.sample('weight', 
+                             dist.normal(jnp.array(0.), jnp.array(1.)),
+                             keys[0])
         measurement = func.sample('measurement',
-                                  dist.normal(weight, jnp.array(1.)), key)
+                                  dist.normal(weight, jnp.array(1.)),
+                                  keys[1])
         return measurement
 
     conditioned_model = func.condition(model, {'weight': jnp.array(0.)})

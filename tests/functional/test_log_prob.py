@@ -34,8 +34,11 @@ def test_log_prob_normal():
 
 def test_log_prob_normal_normal():
     def model(key):
-        n1 = func.sample('n1', dist.normal(jnp.array(0.), jnp.array(1.)), key)
-        n2 = func.sample('n2', dist.normal(n1, jnp.array(1.)), key)
+        keys = jax.random.split(key)
+        n1 = func.sample('n1',
+                         dist.normal(jnp.array(0.), jnp.array(1.)),
+                         keys[0])
+        n2 = func.sample('n2', dist.normal(n1, jnp.array(1.)), keys[1])
         return n2
 
     conditioned_model = func.condition(model, {
