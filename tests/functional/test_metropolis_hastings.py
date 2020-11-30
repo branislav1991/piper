@@ -17,30 +17,20 @@ def test_metropolis_hastings_wrong_proposal_or_initial_samples():
         n2 = func.sample('n2', dist.normal(n1, jnp.array(1.)), key)
         return n2
 
-    def proposal1(key, **current):
-        n4 = func.sample('n4', dist.normal(current['n1'], jnp.array(1.)), key)
+    def proposal(key, **current):
+        n4 = func.sample('n4', dist.normal(current['n4'], jnp.array(1.)), key)
         return {'n4': n4}
 
     conditioned_model = func.condition(model, {'n2': jnp.array(0.5)})
-    initial_samples = {'n1': jnp.array(0.)}
+    initial_samples = {'n4': jnp.array(0.)}
 
-    with pytest.raises(RuntimeError):  # wrong proposal function
-        func.metropolis_hastings(conditioned_model,
-                                 proposal1,
-                                 initial_samples,
-                                 num_chains=1)
-
-    def proposal2(key, **current):
-        n1 = func.sample('n1', dist.normal(current['n1'], jnp.array(1.)), key)
-        return {'n1': n1}
-
-    initial_samples = {'n3': jnp.array(0.)}
-
-    with pytest.raises(RuntimeError):
-        func.metropolis_hastings(conditioned_model,
-                                 proposal2,
-                                 initial_samples,
-                                 num_chains=1)
+    with pytest.raises(RuntimeError):  # wrong proposal and initial samples
+        key = jax.random.PRNGKey(123)
+        mcmc_model = func.metropolis_hastings(conditioned_model,
+                                              proposal,
+                                              initial_samples,
+                                              num_chains=1)
+        mcmc_model(key)
 
 
 def test_metropolis_hastings_normal_one_chain():
@@ -71,8 +61,7 @@ def test_metropolis_hastings_normal_one_chain():
 def test_metropolis_hastings_normal_normal_one_chain():
     def model(key):
         keys = jax.random.split(key, 2)
-        n1 = func.sample('n1',
-                         dist.normal(jnp.array(0.), jnp.array(1.)),
+        n1 = func.sample('n1', dist.normal(jnp.array(0.), jnp.array(1.)),
                          keys[0])
         n2 = func.sample('n2', dist.normal(n1, jnp.array(1.)), keys[1])
         return n2
@@ -102,8 +91,7 @@ def test_metropolis_hastings_normal_normal_one_chain():
 def test_metropolis_hastings_normal_normal_10_chains():
     def model(key):
         keys = jax.random.split(key, 2)
-        n1 = func.sample('n1',
-                         dist.normal(jnp.array(0.), jnp.array(1.)),
+        n1 = func.sample('n1', dist.normal(jnp.array(0.), jnp.array(1.)),
                          keys[0])
         n2 = func.sample('n2', dist.normal(n1, jnp.array(1.)), keys[1])
         return n2
@@ -142,9 +130,8 @@ def test_metropolis_hastings_normal_normal_multidim_10_chains():
     conditioned_model = func.condition(model, {'n2': jnp.full((2, 2), 0.5)})
 
     def proposal(key, **current):
-        n1 = func.sample('n1',
-                         dist.normal(current['n1'], jnp.full((2, 2), 5.)),
-                         key)
+        n1 = func.sample('n1', dist.normal(current['n1'], jnp.full((2, 2),
+                                                                   5.)), key)
         return {'n1': n1}
 
     initial_samples = {'n1': jnp.zeros((2, 2))}
@@ -168,8 +155,7 @@ def test_metropolis_hastings_normal_normal_multidim_10_chains():
 def test_metropolis_hastings_beta_bernoulli_10chains():
     def model(key):
         keys = jax.random.split(key, 2)
-        n1 = func.sample('n1',
-                         dist.beta(jnp.array(0.5), jnp.array(0.5)),
+        n1 = func.sample('n1', dist.beta(jnp.array(0.5), jnp.array(0.5)),
                          keys[0])
         n2 = func.sample('n2', dist.bernoulli(n1), keys[1])
         return n2
