@@ -122,7 +122,18 @@ def test_sample_conditioned():
     assert jnp.mean(samples) > 0.4 and jnp.mean(samples) < 0.6
 
 
-def test_sample_conditioned_invalid_value_error():
+def test_sample_binomial_invalid_value_error():
+    def model(key):
+        keys = jax.random.split(key)
+        n1 = func.sample('n1', dist.bernoulli(jnp.array(2.0)), keys[1])
+        return n1
+
+    key = jax.random.PRNGKey(123)
+    sample = model(key)
+    assert jnp.isnan(sample)
+
+
+def test_sample_binomial_invalid_condition():
     def model(key):
         keys = jax.random.split(key)
         n1 = func.sample('n1', dist.bernoulli(jnp.array(0.5)), keys[0])
@@ -130,6 +141,11 @@ def test_sample_conditioned_invalid_value_error():
         return n2
 
     conditioned_model = func.condition(model, {'n1': jnp.array(0.5)})
+    key = jax.random.PRNGKey(123)
+    sample = conditioned_model(key)
+    assert jnp.isnan(sample)
+
+    conditioned_model = func.condition(model, {'n1': jnp.array(2)})
     key = jax.random.PRNGKey(123)
     sample = conditioned_model(key)
     assert jnp.isnan(sample)

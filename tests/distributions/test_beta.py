@@ -39,9 +39,11 @@ def test_sample_beta():
 
 def test_kl_beta_beta_one_dimensional():
     n1 = dist.beta(jnp.array(1.0), jnp.array(0.5))
-    n2 = dist.beta(jnp.array(2.0), jnp.array(0.5))
+    n2 = dist.beta(jnp.array(1.0), jnp.array(0.5))
+    n3 = dist.beta(jnp.array(2.0), jnp.array(0.5))
 
-    tu.check_close(func.compute_kl_div(n1, n2), 0.6137059)
+    tu.check_close(func.compute_kl_div(n1, n2), 0)
+    tu.check_close(func.compute_kl_div(n1, n3), 0.23342943)
 
 
 def test_kl_beta_beta_multi_dimensional():
@@ -49,10 +51,20 @@ def test_kl_beta_beta_multi_dimensional():
     n2 = dist.beta(jnp.array([2.0, 1.0]), jnp.array([0.5, 0.5]))
 
     tu.check_close(func.compute_kl_div(n1, n2),
-                   jnp.array([0.6137059, -0.28037268]))
+                   jnp.array([0.23342943, 0.23268747]))
 
 
-def test_sample_conditioned_invalid_value_error():
+def test_sample_beta_invalid_value_error():
+    def model(key):
+        n1 = func.sample('n1', dist.beta(jnp.array(-1), jnp.array(-1)), key)
+        return n1
+
+    key = jax.random.PRNGKey(123)
+    sample = model(key)
+    assert jnp.all(jnp.isnan(sample))
+
+
+def test_sample_beta_conditioned_invalid_value_error():
     def model(key):
         n1 = func.sample('n1', dist.beta(jnp.array(0.5), jnp.array(0.5)), key)
         return n1
@@ -61,21 +73,6 @@ def test_sample_conditioned_invalid_value_error():
     key = jax.random.PRNGKey(123)
     sample = conditioned_model(key)
     assert jnp.isnan(sample)
-
-
-def test_sample_conditioned():
-    def model(key):
-        keys = jax.random.split(key, 2)
-        n1 = func.sample('n1', dist.beta(jnp.array(0.5), jnp.array(0.5)),
-                         keys[0])
-        n2 = func.sample('n2', dist.bernoulli(n1), keys[1])
-        return n2
-
-    conditioned_model = func.condition(model, {'n1': jnp.array(1.0)})
-    keys = jax.random.split(jax.random.PRNGKey(123), 100)
-    samples = jax.vmap(lambda k: conditioned_model(k))(keys)
-
-    assert jnp.all(samples == 1)
 
 
 def test_log_prob_beta():
