@@ -24,8 +24,12 @@ class Beta(Distribution):
         """
         super().__init__()
 
-        self.alpha = alpha
-        self.beta = beta
+        if alpha.shape != beta.shape:
+            raise ValueError('alpha and beta need to have the same shape')
+
+        nans = jnp.full(alpha.shape, jnp.nan)
+        self.alpha = jnp.where(alpha <= 0, nans, alpha)
+        self.beta = jnp.where(beta <= 0, nans, beta)
 
     def can_condition(self, val: jnp.ndarray):
         in_range = jnp.logical_and(
@@ -63,8 +67,16 @@ def kl_beta_beta(dist1: Beta, dist2: Beta):
     b1 = dist1.beta
     b2 = dist2.beta
 
-    return jnp.log(jax_special.betainc(a2, b2, 1)
-                   / jax_special.betainc(a1, b1, 1)) \
-        - (a2 - a1) * jax_special.digamma(a1) \
-        - (b2 - b1) * jax_special.digamma(b1) \
-        + (a2 - a1 + b2 - b1) * jax_special.digamma(a1 + b1)
+    s1 = a1 + b1
+    s2 = a2 + b2
+
+    kl_div = jax_special.gammaln(s1) \
+        - jax_special.gammaln(a1) \
+        - jax_special.gammaln(b1) \
+        - jax_special.gammaln(s2) \
+        + jax_special.gammaln(a2) \
+        + jax_special.gammaln(b2) \
+        + (a1 - a2) * (jax_special.digamma(a1 - jax_special.digamma(s1))) \
+        + (b1 - b2) * (jax_special.digamma(b1 - jax_special.digamma(s1)))
+
+    return kl_div

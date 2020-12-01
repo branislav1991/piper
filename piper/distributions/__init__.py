@@ -7,6 +7,7 @@ from piper.distributions.binomial import bernoulli
 from piper.distributions.multinomial import multinomial
 from piper.distributions.multinomial import categorical
 from piper.distributions.beta import beta
+from piper.distributions.dirichlet import dirichlet
 from piper.distributions.uniform import uniform
 
 __all__ = [
@@ -16,5 +17,6 @@ __all__ = [
     "multinomial",
     "categorical",
     "beta",
+    "dirichlet",
     "uniform"
 ]

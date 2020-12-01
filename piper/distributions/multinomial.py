@@ -99,7 +99,6 @@ def kl_multinomial_multinomial(dist1: Multinomial, dist2: Multinomial):
     n2 = dist2.n
     p1 = dist1.p
     p2 = dist2.p
-    k = p1.shape[-1]
 
     if jnp.any(n1 != n2):
         raise ValueError('KL-divergence only defined for multinomial \

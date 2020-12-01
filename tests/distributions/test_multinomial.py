@@ -88,19 +88,11 @@ def test_kl_multinomial_multinomial_multi_dimensional():
 def test_sample_multinomial_invalid_value_error():
     def model(key):
         keys = jax.random.split(key, 3)
-        n1 = func.sample('n1', dist.normal(jnp.array(0), jnp.array(1)),
-                         keys[0])
-        n2 = func.sample('n2', dist.normal(jnp.array(0), jnp.array(1)),
-                         keys[1])
-        n3 = func.sample('n3', dist.categorical(jnp.stack([n1, n2])), keys[2])
-        return n3
+        n1 = func.sample('n1', dist.categorical(jnp.array([0.5, 1.5])), keys[2])
+        return n1
 
-    conditioned_model = func.condition(model, {
-        'n1': jnp.array(0.5),
-        'n2': jnp.array(1.0)
-    })
     key = jax.random.PRNGKey(123)
-    sample = conditioned_model(key)
+    sample = model(key)
     assert jnp.all(jnp.isnan(sample))
 
 
