@@ -5,7 +5,8 @@
 | [**Tutorial**](#tutorial)
 
 ![license](https://img.shields.io/github/license/branislav1991/piper)
-![build](https://img.shields.io/github/workflow/status/branislav1991/piper/Python%20package)
+![Publish Package](https://github.com/branislav1991/piper/workflows/Publish%20Package/badge.svg)
+![Build Python Package](https://github.com/branislav1991/piper/workflows/Build%20Python%20Package/badge.svg)
 
 ## Overview
 
