@@ -4,7 +4,17 @@
 from piper.distributions.normal import normal
 from piper.distributions.binomial import binomial
 from piper.distributions.binomial import bernoulli
+from piper.distributions.multinomial import multinomial
+from piper.distributions.multinomial import categorical
 from piper.distributions.beta import beta
 from piper.distributions.uniform import uniform
 
-__all__ = ["normal", "binomial", "bernoulli", "beta", "uniform"]
+__all__ = [
+    "normal",
+    "binomial",
+    "bernoulli",
+    "multinomial",
+    "categorical",
+    "beta",
+    "uniform"
+]

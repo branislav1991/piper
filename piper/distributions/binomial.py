@@ -3,9 +3,10 @@
 
 import jax
 import jax.numpy as jnp
+from jax.scipy.special import gammaln
+import numpy as np
 
 from piper.distributions.distribution import Distribution
-from piper.functional import kl_divergence
 from piper import core
 from piper import utils
 
@@ -18,7 +19,7 @@ class Binomial(Distribution):
         multiple binomial distributions.
 
         Args:
-            n: Number of trials. Has to be an integer and non-negative.
+            n: Number of trials. Has to be an integer and positive.
             p: Probability of the success of a trial. Must have same shape
                 as n and must be between 0 and 1.
         """
@@ -27,11 +28,17 @@ class Binomial(Distribution):
         if n.shape != p.shape:
             raise ValueError('n and p need to have the same shape')
 
-        self.n = jnp.int32(n)
-        self.p = p
+        # we cannot raise a ValueError here since we get problems with
+        # ConcretizationError during Metropolis-Hastings
+        nans = jnp.full(p.shape, jnp.nan)
+        self.p = jnp.where(jnp.logical_or(p < 0, p > 1), nans, p)
+        self.n = jnp.where(n <= 0, nans, n)
 
     def can_condition(self, val: jnp.ndarray):
-        return utils.is_integer(val)
+        in_range = jnp.logical_and(
+            jnp.all(jnp.greater_equal(val, jnp.array(0.))),
+            jnp.all(jnp.greater_equal(self.n, val)))
+        return jnp.logical_and(utils.is_integer(val), in_range)
 
     def sample(self, key: jnp.ndarray) -> jnp.ndarray:
         """Sample from the distribution.
@@ -45,7 +52,10 @@ class Binomial(Distribution):
         p_sample = self.p.reshape((self.p.size))
         samp = []
         for n, p, k in zip(n_sample, p_sample, keys):
-            samples = jax.random.bernoulli(k, p, shape=(n, ))
+            samples = jnp.where(
+                jnp.isnan(n),
+                jnp.nan,
+                jax.random.bernoulli(k, p, shape=(jnp.int32(n), )))
             samp.append(jnp.sum(samples))
 
         is_nan = jnp.isnan(self.p)
@@ -55,7 +65,12 @@ class Binomial(Distribution):
     def log_prob(self, x: jnp.ndarray) -> jnp.ndarray:
         """Calculate log probability.
         """
-        return x * jnp.log(self.p) + (self.n - x) * jnp.log(1 - self.p)
+        def log_binomial_coeff(n, x):
+            return gammaln(n + 1) - gammaln(n - x + 1) - gammaln(x + 1)
+
+        return log_binomial_coeff(
+            self.n,
+            x) + x * jnp.log(self.p) + (self.n - x) * jnp.log(1 - self.p)
 
 
 def binomial(n: jnp.ndarray, p: jnp.ndarray):
