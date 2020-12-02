@@ -45,7 +45,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/branislav1991/piper",
     packages=find_packages(exclude=['tests', 'tests.*']),
-    install_requires=["numpy", "jax", "jaxlib"],
+    install_requires=["numpy>=1.18.0", "jax>=0.2.4", "jaxlib>=0.1.56"],
     classifiers=[
         'Development Status :: 1 - Planning',
         'Natural Language :: English',

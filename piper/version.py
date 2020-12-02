@@ -1,4 +1,4 @@
 # Copyright (c) 2020 Branislav Holländer. All rights reserved.
 # See the file LICENSE for copying permission.
 
-__version__ = "0.1"
+__version__ = "0.0.1"
