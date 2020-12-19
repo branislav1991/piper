@@ -4,7 +4,6 @@
 import jax
 import jax.numpy as jnp
 from jax.scipy.special import gammaln
-import numpy as np
 
 from piper.distributions.distribution import Distribution
 from piper import core

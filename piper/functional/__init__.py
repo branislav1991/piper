@@ -7,7 +7,16 @@ from piper.functional.log_prob_module import log_prob
 from piper.functional.metropolis_hastings_module import metropolis_hastings
 from piper.functional.sampler import sample
 from piper.functional.trace_module import trace
+from piper.functional.elbo_module import elbo
+from piper.functional.svi_module import svi
 
 __all__ = [
-    "compute_kl_div", "sample", "condition", "log_prob", "metropolis_hastings", "trace"
+    "compute_kl_div",
+    "sample",
+    "condition",
+    "log_prob",
+    "metropolis_hastings",
+    "trace",
+    "elbo",
+    "svi"
 ]
