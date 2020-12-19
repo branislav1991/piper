@@ -125,4 +125,47 @@ The model returned by *func.metropolis_hastings* will automatically be sampled b
 Metropolis-Hastings sampler. Note that using multiple chains will be
 automatically parallelized by piper.
 
+### Stochastic Variational Inference
+
+Another way to sample from a complicated distribution is to perform Stochastic Variational Inference (SVI).
+In SVI, instead of running a Markov chain, we use an auxiliary distribution *q* with
+an arbitrary number of parameters and we try to adjust these parameters so that *q* approximates our original distribution *p*. In particular, we choose *q* so that we can
+easily sample from it.
+
+Finding the correct parameters of *q* is done using gradient descent on our data. Let us demonstrate this using a very simple example. In this example, we will try to find the correct parameters to approximate a normal distribution with a normal distribution.
+Since these distributions are qualitatively equal, the final parameters after the optimization procedure should match the original ones very closely.
+
+
+    def model(key):
+        n1 = func.sample('n1', dist.normal(jnp.array(10.), jnp.array(10.)),
+                         key)
+        return n1
+
+    def q(params, key):
+        n1 = func.sample('n1', dist.normal(params['n1_mean'],
+                                           params['n1_std']), key)
+        return {'n1': n1}
+
+    optimizer = jax_optim.adam(0.05)
+    svi = func.svi(model,
+                   q,
+                   func.elbo,
+                   optimizer,
+                   initial_params={
+                       'n1_mean': jnp.array(0.),
+                       'n1_std': jnp.array(1.)
+                   })
+
+    keys = jax.random.split(jax.random.PRNGKey(123), 500)
+    for i in range(500):
+        loss = svi(keys[i])
+        if i % 100 == 0:
+            print(f"Step {i}: {loss}")
+
+    inferred_n1_mean = svi.get_param('n1_mean')
+    inferred_n1_std = svi.get_param('n1_std')
+    
+In this example, we use the ADAM optimizer provided by JAX to infer the distributional
+parameters. Running this code, we note that *inferred_n1_mean* and *inferred_n1_std* are very close to 10, our true parameters.
+
 [JAX]: https://github.com/google/jax
